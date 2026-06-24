@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# Scripts/build-app.sh
+#
+# Assembles the swift build output into a macOS .app bundle at .build/<App>.app,
+# applies the right entitlements, and signs the bundle so it launches on a
+# user's Mac without a Developer ID signature.
+#
+# Default behavior: builds the PUBLIC ad-hoc-signed app with NO iCloud
+# entitlements. This is what gets shipped to GitHub releases and what every
+# end-user downloads.
+#
+# Opt-in developer build (includes iCloud entitlements):
+#   ENABLE_ICLOUD_SYNC=1 ./Scripts/build-app.sh
+# This requires the developer to sign with their own Developer ID afterwards
+# (or accept the ad-hoc + iCloud entitlement = AMFI refusal trade-off, which
+# means the app won't launch at all until they sign it properly).
+#
+# The bundle is sealed at the end (codesign --force --deep --sign -) so
+# codesign --verify --deep --strict passes — a linker-only signature
+# structurally cannot pass strict verify, and our verify-release-launch.sh
+# runs that check unconditionally.
+#
+# Arguments:
+#   $1 (optional): release|debug — defaults to release.
+
+set -euo pipefail
+
+CONFIG="${1:-release}"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_DIR"
+
+APP_NAME="SnapshotSafari"
+BUNDLE_ID="com.ernest.snapshot-safari"
+BUILD_DIR=".build"
+APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
+
+ENTITLEMENTS_DIR="Sources/${APP_NAME}/Resources/Entitlements"
+if [ "${ENABLE_ICLOUD_SYNC:-0}" = "1" ]; then
+    ENTITLEMENTS_FILE="${ENTITLEMENTS_DIR}/${APP_NAME}.entitlements.dev"
+    echo "==> Building DEVELOPER variant with iCloud entitlements"
+    echo "    Entitlements: ${ENTITLEMENTS_FILE}"
+    echo "    NOTE: You must sign with a Developer ID for iCloud to actually work."
+    echo "          An ad-hoc + iCloud entitlement binary will be killed by AMFI."
+else
+    ENTITLEMENTS_FILE="${ENTITLEMENTS_DIR}/${APP_NAME}.entitlements"
+    echo "==> Building PUBLIC variant (no iCloud — works for everyone)"
+    echo "    Entitlements: ${ENTITLEMENTS_FILE}"
+fi
+
+if [ ! -f "$ENTITLEMENTS_FILE" ]; then
+    echo "ERROR: entitlements file not found: $ENTITLEMENTS_FILE" >&2
+    exit 1
+fi
+
+echo "==> swift build -c ${CONFIG}"
+swift build -c "${CONFIG}"
+
+BINARY_PATH="$(swift build -c "${CONFIG}" --show-bin-path)/${APP_NAME}"
+if [ ! -x "$BINARY_PATH" ]; then
+    echo "ERROR: built binary not found at ${BINARY_PATH}" >&2
+    exit 1
+fi
+
+echo "==> Assembling .app bundle at ${APP_BUNDLE}"
+rm -rf "${APP_BUNDLE}"
+mkdir -p "${APP_BUNDLE}/Contents/MacOS"
+mkdir -p "${APP_BUNDLE}/Contents/Resources"
+
+cp "${BINARY_PATH}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
+chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
+
+# Copy Info.plist from source tree (NOT bundled as a SwiftPM resource — we
+# exclude it in Package.swift so it goes only here, in the canonical macOS
+# location).
+cp "Sources/${APP_NAME}/Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
+
+# Copy asset catalog contents if SPM produced a resource bundle, and merge
+# it into Contents/Resources. This keeps @MainActor Assets.xcassets available
+# to the app at runtime.
+RESOURCE_BUNDLE="$(find "${BUILD_DIR}" -name "${APP_NAME}_${APP_NAME}.bundle" -type d 2>/dev/null | head -1 || true)"
+if [ -n "${RESOURCE_BUNDLE}" ] && [ -d "${RESOURCE_BUNDLE}" ]; then
+    echo "==> Merging SPM resource bundle ${RESOURCE_BUNDLE}"
+    ditto "${RESOURCE_BUNDLE}" "${APP_BUNDLE}/Contents/Resources"
+fi
+
+# Sparkle.framework ships next to the executable when SPM links it. Copy
+# it into Contents/Frameworks so SPUStandardUpdaterController can load it.
+# SwiftPM does NOT add an @executable_path/../Frameworks rpath to the binary,
+# so we add it with install_name_tool — without this, dyld fails to resolve
+# Sparkle's @rpath/Sparkle.framework reference and the app aborts on launch.
+SPARKLE_FRAMEWORK="$(find "${BUILD_DIR}" -path "*Sparkle.framework" -type d 2>/dev/null | head -1 || true)"
+if [ -n "${SPARKLE_FRAMEWORK}" ] && [ -d "${SPARKLE_FRAMEWORK}" ]; then
+    echo "==> Embedding Sparkle.framework from ${SPARKLE_FRAMEWORK}"
+    mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
+    cp -R "${SPARKLE_FRAMEWORK}" "${APP_BUNDLE}/Contents/Frameworks/"
+    echo "==> Adding @executable_path/../Frameworks rpath"
+    install_name_tool -add_rpath "@executable_path/../Frameworks" \
+        "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
+fi
+
+# Strip any SPM resource bundle Info.plist copy that might leak into
+# Contents/Resources and confuse codesign's bundle seal.
+find "${APP_BUNDLE}/Contents/Resources" -name "Info.plist" -delete 2>/dev/null || true
+
+echo "==> Codesigning with entitlements (ad-hoc, deep)"
+codesign --force --deep \
+    --entitlements "${ENTITLEMENTS_FILE}" \
+    --sign - \
+    "${APP_BUNDLE}"
+
+# Sanity check: confirm the bundle sealed properly (not just linker-signed).
+SEALED=$(codesign -dvv "${APP_BUNDLE}" 2>&1 | grep -E "^Sealed Resources" || true)
+if ! echo "$SEALED" | grep -q "version=2"; then
+    echo "ERROR: bundle did not seal properly (Sealed Resources: ${SEALED:-none})" >&2
+    exit 1
+fi
+
+echo "==> Build complete: ${APP_BUNDLE}"
+echo "    Open with:  open ${APP_BUNDLE}"
+echo "    Verify:     ./scripts/verify-release-launch.sh ${APP_BUNDLE}"

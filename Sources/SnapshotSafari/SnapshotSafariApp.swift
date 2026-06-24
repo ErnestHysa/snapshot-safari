@@ -76,15 +76,20 @@ struct SnapshotSafariApp: App {
     init() {
         let schema = Schema([Snapshot.self, TabEntry.self])
 
-        // Configure for CloudKit if the user has enabled it.
+        // Configure for CloudKit only when the user has enabled sync AND this build
+        // carries the iCloud entitlements required by AMFI. Public ad-hoc-signed
+        // builds do not, so they always use the local store.
         let isCloudSyncEnabled = SyncService.shared.isSyncEnabled
+        let hasICloudEntitlements = SyncService.shared.iCloudEntitled
+        let useCloud = isCloudSyncEnabled && hasICloudEntitlements
+
         let localConfig = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
             allowsSave: true
         )
 
-        if isCloudSyncEnabled {
+        if useCloud {
             let cloudConfig = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: false,
@@ -104,6 +109,7 @@ struct SnapshotSafariApp: App {
         } else {
             self.container = (try? ModelContainer(for: schema, configurations: [localConfig]))
                 ?? Self.fallbackContainer
+            SyncService.shared.isCloudAvailable = false
         }
     }
 

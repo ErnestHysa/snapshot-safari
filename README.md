@@ -75,13 +75,49 @@ open Package.swift
 
 ### Building for Distribution
 
-```bash
-# Build the release version
-swift build -c release
+The release pipeline is split into two flavors:
 
-# The binary will be at:
-# .build/release/SnapshotSafari
+**Public release** — what end users download from GitHub releases:
+
+```bash
+# Builds an ad-hoc-signed .app that launches on any Mac without a developer account.
+./Scripts/build-app.sh release
+
+# Bundle the .app into a versioned DMG with SHA256 checksum.
+./Scripts/release/make-dmg.sh
+
+# Verify the DMG: bundle structure, codesign verify (deep + strict),
+# Info.plist drift check, privileged-entitlement audit, launchability test.
+./Scripts/release/verify-release.sh Release/SnapshotSafari-1.0.0-1.dmg
 ```
+
+The public release **does not include iCloud / CloudKit entitlements** because
+those entitlements require a Developer ID signature and would cause AMFI to
+SIGKILL the binary on launch if requested under ad-hoc signing. The iCloud
+Sync feature is present in the code, but its toggle is disabled in Settings
+for the public build and the user is shown a clear explanation.
+
+**Signed release** — requires an Apple Developer ID ($99/yr):
+
+```bash
+export DEVELOPER_ID_APPLICATION="Developer ID Application: Your Name (TEAMID)"
+./Scripts/release/sign-app.sh
+./Scripts/release/make-dmg.sh
+export NOTARY_PROFILE="my-profile"  # configured once via `xcrun notarytool store-credentials`
+./Scripts/release/notarize-dmg.sh Release/SnapshotSafari-1.0.0-1.dmg
+./Scripts/release/staple-and-verify.sh Release/SnapshotSafari-1.0.0-1.dmg
+RELEASE_STRICT=1 ./Scripts/release/verify-release.sh Release/SnapshotSafari-1.0.0-1.dmg
+```
+
+**Developer build with iCloud sync** — opt-in iCloud entitlements for personal use:
+
+```bash
+ENABLE_ICLOUD_SYNC=1 ./Scripts/build-app.sh
+```
+
+The resulting .app requests iCloud / CloudKit entitlements. You must sign it
+with a Developer ID (`sign-app.sh` does this) for AMFI to accept it. An
+ad-hoc + iCloud entitlement binary is killed by AMFI at launch.
 
 ## Setup
 
@@ -91,23 +127,37 @@ swift build -c release
 2. Grant **Automation access** to Safari when prompted (System Settings → Privacy & Security → Automation)
 3. Take your first snapshot with ⌘N or the camera button in the toolbar
 
-### Sparkle Auto-Updates (for distribution)
+### Sparkle Auto-Updates
 
-To enable Sparkle updates for your distributed build:
+Sparkle is already wired into the app (the `Sparkle` SwiftPM dependency,
+`SPUStandardUpdaterController` in `SparkleUpdater.swift`, and
+`SUPublicEDKey` + `SUFeedURL` in `Info.plist`). To publish a new version:
 
-1. Generate an Ed25519 key pair using Sparkle's `generate_keys` tool
-2. Replace `SUPublicEDKey` in `Sources/SnapshotSafari/Info.plist` with your public key
-3. Publish an `appcast.xml` and update the `SUFeedURL` in Info.plist
-4. Sign and notarize your `.app` bundle
+1. Bump `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist`
+2. Build the new DMG: `./Scripts/release/build-release.sh && ./Scripts/release/make-dmg.sh`
+3. Sign the DMG with `Sparkle/bin/sign_update` (the private key is in your macOS Keychain — generated once with `generate_keys`)
+4. Update `appcast.xml` at the repo root with the new version's metadata + signature + DMG URL
+5. Commit `appcast.xml`, push to `main`, create the GitHub release with the DMG asset
 
 ### iCloud Sync
 
-To enable iCloud sync across Macs:
+iCloud Sync is fully implemented but **disabled in the public download** because
+the CloudKit container + iCloud services entitlements require a Developer ID
+signature — Apple Mobile File Integrity (AMFI) kills ad-hoc binaries that
+request them.
+
+The app detects at runtime whether the running binary carries the iCloud
+entitlements (via `SecTaskCopyValueForEntitlement` in `SyncService.swift`)
+and disables the toggle in Settings with an explanation when they are absent.
+
+To enable iCloud sync for personal use:
 
 1. Enroll in the [Apple Developer Program](https://developer.apple.com/programs/)
-2. Create a CloudKit container with identifier `iCloud.com.ernest.snapshot-safari` on the [Developer Portal](https://developer.apple.com/account/resources/identifiers/container)
-3. Sign your app with a provisioning profile that includes the iCloud capability
-4. In the app, go to Settings → Sync and enable iCloud Sync (requires restart)
+2. Create a CloudKit container with identifier `iCloud.com.ernest.snapshot-safari`
+   on the [Developer Portal](https://developer.apple.com/account/resources/identifiers/container)
+3. Build with iCloud entitlements: `ENABLE_ICLOUD_SYNC=1 ./Scripts/build-app.sh`
+4. Sign with your Developer ID: `./Scripts/release/sign-app.sh`
+5. The Settings → Sync tab will show iCloud Sync as enabled
 
 ## Usage
 
@@ -174,46 +224,62 @@ To enable iCloud sync across Macs:
 
 ```
 SnapshotSafari/
-├── Package.swift                          # SPM manifest
-├── SnapshotSafari.entitlements            # Sandbox + iCloud entitlements
+├── Package.swift                              # SPM manifest
+├── appcast.xml                                # Sparkle update feed
 ├── Sources/SnapshotSafari/
-│   ├── SnapshotSafariApp.swift            # App entry point, commands, CloudKit init
-│   ├── Info.plist                         # Bundle metadata, Sparkle keys
+│   ├── SnapshotSafariApp.swift                # App entry point, commands, CloudKit init
+│   ├── Info.plist                             # Bundle metadata, Sparkle keys
+│   ├── Resources/
+│   │   ├── Assets.xcassets                    # App icon, colors
+│   │   └── Entitlements/
+│   │       ├── SnapshotSafari.entitlements       # Public build (no iCloud)
+│   │       └── SnapshotSafari.entitlements.dev   # Developer build (with iCloud)
 │   ├── Models/
-│   │   ├── Snapshot.swift                 # SwiftData model: snapshot with tabs
-│   │   ├── TabEntry.swift                 # SwiftData model: individual tab
-│   │   ├── SnapshotDiff.swift             # Diff computation between snapshots
-│   │   └── SnapshotExport.swift           # Codable export/import format
+│   │   ├── Snapshot.swift                     # SwiftData model: snapshot with tabs
+│   │   ├── TabEntry.swift                     # SwiftData model: individual tab
+│   │   ├── SnapshotDiff.swift                 # Diff computation between snapshots
+│   │   └── SnapshotExport.swift               # Codable export/import format
 │   ├── Services/
-│   │   ├── SafariBridge.swift             # JXA → Safari read/restore tabs
-│   │   ├── SnapshotService.swift          # CRUD, search, trash, export/import
-│   │   ├── AutoSnapshotManager.swift      # Timer-based auto-snapshot loop
-│   │   ├── PermissionsService.swift       # Automation permission check
-│   │   ├── SyncService.swift              # iCloud sync state management
-│   │   ├── FaviconService.swift           # Cached favicon fetching
-│   │   └── SparkleUpdater.swift           # Auto-update orchestration
+│   │   ├── SafariBridge.swift                 # JXA → Safari read/restore tabs
+│   │   ├── SnapshotService.swift              # CRUD, search, trash, export/import
+│   │   ├── AutoSnapshotManager.swift          # Timer-based auto-snapshot loop
+│   │   ├── PermissionsService.swift           # Automation permission check
+│   │   ├── SyncService.swift                  # iCloud sync state + runtime entitlement check
+│   │   ├── FaviconService.swift               # Cached favicon fetching
+│   │   └── SparkleUpdater.swift               # Auto-update orchestration
 │   ├── ViewModels/
-│   │   └── SnapshotListViewModel.swift    # Observable state for the main UI
+│   │   └── SnapshotListViewModel.swift        # Observable state for the main UI
 │   ├── Utilities/
-│   │   └── AutoNamer.swift                # Smart snapshot name generation
+│   │   └── AutoNamer.swift                    # Smart snapshot name generation
 │   └── Views/
-│       ├── ContentView.swift              # Root view: split navigation + toolbar
-│       ├── SnapshotListView.swift         # Sidebar list with search
-│       ├── SnapshotCard.swift             # List item with favicon preview
-│       ├── SnapshotDetailView.swift       # Tab list + restore/export/delete
-│       ├── TabRow.swift                   # Individual tab row with favicon
-│       ├── RestoreOptionsSheet.swift      # New/current window picker
-│       ├── CompareSnapshotsView.swift     # Visual diff display
-│       ├── TrashView.swift                # Recently deleted snapshots
-│       ├── SettingsView.swift             # 7-tab settings panel
-│       └── WelcomeView.swift              # First-launch onboarding
+│       ├── ContentView.swift                  # Root view: split navigation + toolbar
+│       ├── SnapshotListView.swift             # Sidebar list with search
+│       ├── SnapshotCard.swift                 # List item with favicon preview
+│       ├── SnapshotDetailView.swift           # Tab list + restore/export/delete
+│       ├── TabRow.swift                       # Individual tab row with favicon
+│       ├── RestoreOptionsSheet.swift          # New/current window picker
+│       ├── CompareSnapshotsView.swift         # Visual diff display
+│       ├── TrashView.swift                    # Recently deleted snapshots
+│       ├── SettingsView.swift                 # 7-tab settings panel
+│       └── WelcomeView.swift                  # First-launch onboarding
+├── Scripts/
+│   ├── build-app.sh                           # swift build → .app bundle → codesign
+│   └── release/
+│       ├── build-release.sh                   # swift test + build-app.sh + stage
+│       ├── sign-app.sh                        # Developer ID sign + Hardened Runtime
+│       ├── make-dmg.sh                        # Compressed read-only DMG via hdiutil
+│       ├── notarize-dmg.sh                    # notarytool submit --wait
+│       ├── staple-and-verify.sh               # stapler staple + spctl + codesign
+│       └── verify-release.sh                  # Bundle/codesign/entitlements/plist checks
+├── scripts/
+│   └── verify-release-launch.sh               # Independent launch verification
 └── Tests/SnapshotSafariTests/
-    ├── AutoNamerTests.swift               # 10 naming tests
-    ├── SafariBridgeTests.swift            # 18 JXA + model tests
-    ├── SnapshotServiceTests.swift         # 27 CRUD, search, trash, cleanup tests
-    ├── SnapshotDiffTests.swift            # 8 diff algorithm tests
-    ├── SnapshotExportTests.swift          # 14 export/import tests
-    └── SyncServiceTests.swift             # 15 sync state tests
+    ├── AutoNamerTests.swift                   # 10 naming tests
+    ├── SafariBridgeTests.swift                # 18 JXA + model tests
+    ├── SnapshotServiceTests.swift             # 27 CRUD, search, trash, cleanup tests
+    ├── SnapshotDiffTests.swift                # 8 diff algorithm tests
+    ├── SnapshotExportTests.swift              # 14 export/import tests
+    └── SyncServiceTests.swift                 # 19 sync state + entitlement tests
 ```
 
 ### Key Design Decisions
@@ -240,7 +306,7 @@ swift build -c release   # Release build
 ### Testing
 
 ```bash
-# Run all tests (94 tests across 10 suites)
+# Run all tests (97 tests across 10 suites)
 swift test
 
 # Run a specific test suite
@@ -260,7 +326,7 @@ swift test --filter SyncServiceTests
 
 ## Test Coverage
 
-The project includes **94 tests across 10 suites**:
+The project includes **97 tests across 10 suites**:
 
 | Suite | Tests | What's Covered |
 |-------|-------|----------------|
@@ -269,7 +335,7 @@ The project includes **94 tests across 10 suites**:
 | SnapshotServiceTests | 27 | CRUD, search (name/URL/title/domain), cascade delete, trash/restore, cleanup |
 | SnapshotDiffTests | 8 | URL diffing, case-insensitivity, empty sets, many items |
 | SnapshotExportTests | 14 | JSON roundtrip, version validation, service integration |
-| SyncServiceTests | 15 | Default state, toggling, cloud availability, status messages |
+| SyncServiceTests | 19 | Default state, toggling, cloud availability, status messages, runtime iCloud entitlement detection |
 
 ## License
 

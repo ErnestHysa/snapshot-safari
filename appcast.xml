@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>Snapshot Safari Updates</title>
+        <link>https://github.com/ErnestHysa/snapshot-safari/releases</link>
+        <description>Most recent updates to Snapshot Safari</description>
+        <language>en</language>
+        <item>
+            <title>Snapshot Safari 1.0.0</title>
+            <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.0/SnapshotSafari-1.0.0-1.dmg</link>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <pubDate>Wed, 24 Jun 2026 14:00:00 +0000</pubDate>
+            <description><![CDATA[
+                <h2>Snapshot Safari 1.0.0</h2>
+                <p>Initial public release. Save and restore Safari tab states, compare snapshots, and schedule auto-snapshots.</p>
+                <h3>Features</h3>
+                <ul>
+                    <li>Take snapshots of all open Safari tabs (⌘N)</li>
+                    <li>Auto-naming with date, tab count, and type</li>
+                    <li>Search across snapshot name, URL, tab title, and domain</li>
+                    <li>Rename and trash snapshots with 30-day auto-cleanup</li>
+                    <li>Export/Import snapshots as JSON files (⌘E / ⌘I)</li>
+                    <li>Restore all tabs or select specific ones</li>
+                    <li>Compare two snapshots to see added, removed, and unchanged tabs</li>
+                    <li>Auto-snapshots every 30 min, 1h, 2h, or 4h</li>
+                    <li>Sparkle-powered auto-updates</li>
+                    <li>Light, Dark, and System themes</li>
+                </ul>
+                <h3>iCloud Sync</h3>
+                <p>The iCloud Sync feature is included in the app but is disabled in this public build. The CloudKit entitlements require an Apple Developer ID signature that public downloads cannot carry. See the project README for build instructions if you want to enable sync for personal use.</p>
+            ]]></description>
+            <enclosure
+                url="https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.0/SnapshotSafari-1.0.0-1.dmg"
+                length="1347872"
+                type="application/octet-stream"
+                sparkle:edSignature="PeGmEjcfMAXvorcqRv1JYl0AqovWEXIhaqE9JPCOOMrzhZ2ih+uXbffRw+QwUyKus/qBu7GyuQiavgRxyjuQDw=="
+                sparkle:os="macos"/>
+        </item>
+    </channel>
+</rss>

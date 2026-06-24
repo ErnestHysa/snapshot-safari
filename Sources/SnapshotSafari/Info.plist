@@ -7,7 +7,7 @@
     <key>CFBundleDisplayName</key>
     <string>Snapshot Safari</string>
     <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
+    <string>SnapshotSafari</string>
     <key>CFBundleIdentifier</key>
     <string>com.ernest.snapshot-safari</string>
     <key>CFBundleInfoDictionaryVersion</key>
@@ -21,7 +21,7 @@
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
+    <string>15.0</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>Snapshot Safari needs Automation access to Safari to read your open tabs and restore them later.</string>
     <key>NSPrincipalClass</key>

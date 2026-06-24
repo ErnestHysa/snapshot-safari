@@ -34,6 +34,19 @@ $RECYCLE.BIN/
 *.pkg
 *.app
 
+# Release staging (built artifacts, not source)
+Release/staging/
+Release/*.dmg
+Release/*.dmg.sha256
+Release/*.rw.dmg
+Release/notary-logs/
+
+# Sparkle keys / private keys (must NEVER be committed)
+*.sparkle_priv_key
+dsa_priv.pem
+ed25519_priv.pem
+*.priv.pem
+
 # Environment
 .env
 .env.local

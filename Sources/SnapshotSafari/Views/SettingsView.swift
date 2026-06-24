@@ -143,9 +143,26 @@ struct SettingsView: View {
                         showingSyncRestart = true
                     }
                 ))
-                .accessibilityHint("Syncs your snapshots across all Macs signed into the same iCloud account. Requires restart to take effect.")
+                .disabled(!syncService.iCloudEntitled)
+                .accessibilityHint(syncService.iCloudEntitled
+                    ? "Syncs your snapshots across all Macs signed into the same iCloud account. Requires restart to take effect."
+                    : "iCloud sync requires a developer build of Snapshot Safari. See the GitHub repository for build instructions.")
             } header: {
                 Label("iCloud Sync", systemImage: "icloud")
+            }
+
+            if !syncService.iCloudEntitled {
+                Section {
+                    Label("iCloud sync is unavailable in the public build.", systemImage: "icloud.slash")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Text("The iCloud / CloudKit entitlements require an Apple Developer ID signature. This public release is signed ad-hoc so it can be downloaded and run without a developer account.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Link("Build with iCloud — see the project README",
+                         destination: URL(string: "https://github.com/ErnestHysa/snapshot-safari#icloud-sync")!)
+                        .font(.caption)
+                }
             }
 
             Section {
@@ -300,7 +317,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Link("Snapshot Safari on GitHub", destination: URL(string: "https://github.com/ernest/snapshot-safari")!)
+                Link("Snapshot Safari on GitHub", destination: URL(string: "https://github.com/ErnestHysa/snapshot-safari")!)
                     .font(.caption)
                     .accessibilityHint("Opens the Snapshot Safari repository on GitHub in your browser.")
             }

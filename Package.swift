@@ -19,8 +19,12 @@ let package = Package(
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle")
             ],
+            exclude: [
+                "Info.plist",
+                "Resources/Entitlements"
+            ],
             resources: [
-                .process("Resources")
+                .process("Resources/Assets.xcassets")
             ]
         ),
         .testTarget(
