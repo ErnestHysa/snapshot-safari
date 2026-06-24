@@ -6,7 +6,6 @@ struct ContentView: View {
     @State private var viewModel: SnapshotListViewModel?
     @State private var autoSnapshotManager: AutoSnapshotManager?
     @State private var permissionsService = PermissionsService()
-    @State private var showingSettings = false
     @State private var showingWelcome = false
     @State private var showingTrash = false
 
@@ -36,15 +35,9 @@ struct ContentView: View {
 
                         importButton(with: viewModel)
                         exportMenu(with: viewModel)
-                        settingsButton
+                        settingsButton(autoSnapshotManager: autoSnapshotManager)
                         takeSnapshotButton(with: viewModel)
                     }
-                }
-                .sheet(isPresented: $showingSettings) {
-                    SettingsView(
-                        autoSnapshotManager: autoSnapshotManager,
-                        permissionsService: permissionsService
-                    )
                 }
                 .sheet(isPresented: $showingWelcome) {
                     WelcomeView(permissionsService: permissionsService)
@@ -85,7 +78,12 @@ struct ContentView: View {
             Task { await viewModel?.takeSnapshot() }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
-            showingSettings = true
+            if let autoSnapshotManager {
+                SettingsWindow.show(
+                    autoSnapshotManager: autoSnapshotManager,
+                    permissionsService: permissionsService
+                )
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .importSnapshots)) { _ in
             viewModel?.importSnapshotsFromFile()
@@ -107,8 +105,13 @@ struct ContentView: View {
 
     // MARK: - Toolbar Sub-views
 
-    private var settingsButton: some View {
-        Button(action: { showingSettings = true }) {
+    private func settingsButton(autoSnapshotManager: AutoSnapshotManager) -> some View {
+        Button(action: {
+            SettingsWindow.show(
+                autoSnapshotManager: autoSnapshotManager,
+                permissionsService: permissionsService
+            )
+        }) {
             Image(systemName: "gearshape")
         }
         .help("Settings")

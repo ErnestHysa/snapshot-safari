@@ -1,10 +1,14 @@
 import SwiftUI
 import ServiceManagement
 
-enum AppTheme: String, CaseIterable {
+// MARK: - App Theme
+
+enum AppTheme: String, CaseIterable, Identifiable {
     case system = "System"
     case light = "Light"
     case dark = "Dark"
+
+    var id: String { rawValue }
 
     var colorScheme: ColorScheme? {
         switch self {
@@ -13,13 +17,50 @@ enum AppTheme: String, CaseIterable {
         case .dark: return .dark
         }
     }
+
+    var icon: String {
+        switch self {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max"
+        case .dark: return "moon"
+        }
+    }
 }
+
+// MARK: - Settings Tab
+
+enum SettingsTab: String, CaseIterable, Identifiable {
+    case general = "General"
+    case autoSnapshots = "Auto-Snapshots"
+    case sync = "iCloud Sync"
+    case appearance = "Appearance"
+    case permissions = "Permissions"
+    case updates = "Updates"
+    case about = "About"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .general: return "gearshape"
+        case .autoSnapshots: return "clock.arrow.circlepath"
+        case .sync: return "icloud"
+        case .appearance: return "paintpalette"
+        case .permissions: return "lock.shield"
+        case .updates: return "arrow.down.circle"
+        case .about: return "info.circle"
+        }
+    }
+}
+
+// MARK: - Settings View
 
 struct SettingsView: View {
     @Bindable var autoSnapshotManager: AutoSnapshotManager
     @Bindable var permissionsService: PermissionsService
     @State private var syncService = SyncService.shared
 
+    @State private var selectedTab: SettingsTab = .general
     @State private var launchAtLogin = false
     @State private var selectedTheme: AppTheme = .system
     @State private var customIntervalText = ""
@@ -27,19 +68,14 @@ struct SettingsView: View {
     @State private var sparkleChecker = SparkleUpdateChecker.shared
     @State private var showingSyncRestart = false
 
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
-        TabView {
-            generalTab
-            autoSnapshotTab
-            syncTab
-            appearanceTab
-            permissionsTab
-            updatesTab
-            aboutTab
+        HStack(spacing: 0) {
+            sidebar
+            Divider()
+            content
         }
-        .frame(width: 520, height: 500)
+        .frame(width: 720, height: 520)
+        .background(.regularMaterial)
         .sheet(isPresented: $showingCustomInterval) {
             customIntervalSheet
         }
@@ -53,10 +89,53 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Sidebar
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "camera.aperture")
+                    .font(.title3)
+                    .foregroundStyle(.tint)
+                Text("Snapshot Safari")
+                    .font(.headline)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+
+            Divider()
+
+            List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                Label(tab.rawValue, systemImage: tab.icon)
+                    .tag(tab)
+            }
+            .listStyle(.sidebar)
+            .frame(width: 200)
+            .padding(.vertical, 8)
+        }
+        .background(.bar)
+    }
+
+    // MARK: - Content Pane
+
+    @ViewBuilder
+    private var content: some View {
+        switch selectedTab {
+        case .general: generalTab
+        case .autoSnapshots: autoSnapshotTab
+        case .sync: syncTab
+        case .appearance: appearanceTab
+        case .permissions: permissionsTab
+        case .updates: updatesTab
+        case .about: aboutTab
+        }
+    }
+
     // MARK: - General
 
     private var generalTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.general.rawValue, subtitle: "App-wide behaviour") {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
@@ -64,77 +143,79 @@ struct SettingsView: View {
                     }
                     .accessibilityHint("Opens Snapshot Safari automatically when you log in to your Mac.")
             } header: {
-                Label("General", systemImage: "gearshape")
+                Label("Startup", systemImage: "power")
+            } footer: {
+                Text("Adds Snapshot Safari as a login item. Disable to remove.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
-        .tabItem { Label("General", systemImage: "gearshape") }
-        .padding()
     }
 
     // MARK: - Auto-Snapshots
 
     private var autoSnapshotTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.autoSnapshots.rawValue, subtitle: "Capture tabs automatically on a schedule") {
             Section {
                 Toggle("Enable auto-snapshots", isOn: $autoSnapshotManager.isEnabled)
                     .onChange(of: autoSnapshotManager.isEnabled) { _, _ in
                         toggleAutoSnapshots()
                     }
                     .accessibilityHint("When enabled, snapshots are automatically captured on a schedule.")
-            } header: {
-                Label("Auto-Snapshots", systemImage: "clock.arrow.circlepath")
-            }
 
-            if autoSnapshotManager.isEnabled {
-                Section("Snapshot Interval") {
-                    ForEach(AutoSnapshotManager.presets, id: \.label) { preset in
+                if autoSnapshotManager.isEnabled {
+                    Section {
+                        ForEach(AutoSnapshotManager.presets, id: \.label) { preset in
+                            Button {
+                                autoSnapshotManager.interval = preset.interval
+                                autoSnapshotManager.isCustomInterval = false
+                                autoSnapshotManager.start()
+                            } label: {
+                                HStack {
+                                    Text(preset.label)
+                                    Spacer()
+                                    if !autoSnapshotManager.isCustomInterval
+                                        && abs(autoSnapshotManager.interval - preset.interval) < 1 {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.tint)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("\(preset.label) interval")
+                            .accessibilityHint("Sets auto-snapshots to run every \(preset.label.lowercased()).")
+                        }
+
                         Button {
-                            autoSnapshotManager.interval = preset.interval
-                            autoSnapshotManager.isCustomInterval = false
-                            autoSnapshotManager.start()
+                            showingCustomInterval = true
                         } label: {
                             HStack {
-                                Text(preset.label)
+                                Text(customIntervalLabel)
+                                    .foregroundStyle(.primary)
                                 Spacer()
-                                if !autoSnapshotManager.isCustomInterval
-                                    && abs(autoSnapshotManager.interval - preset.interval) < 1 {
+                                if autoSnapshotManager.isCustomInterval {
                                     Image(systemName: "checkmark")
                                         .foregroundStyle(.tint)
                                 }
                             }
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("\(preset.label) interval")
-                        .accessibilityHint("Sets auto-snapshots to run every \(preset.label.lowercased()).")
+                        .accessibilityLabel("Custom interval")
+                        .accessibilityHint("Set a custom interval in minutes for auto-snapshots.")
+                    } header: {
+                        Label("Snapshot Interval", systemImage: "timer")
                     }
-
-                    Button {
-                        showingCustomInterval = true
-                    } label: {
-                        HStack {
-                            Text(customIntervalLabel)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if autoSnapshotManager.isCustomInterval {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Custom interval")
-                    .accessibilityHint("Set a custom interval in minutes for auto-snapshots.")
                 }
+            } header: {
+                Label("Schedule", systemImage: "clock.arrow.circlepath")
             }
         }
-        .tabItem { Label("Auto-Snapshots", systemImage: "clock.arrow.circlepath") }
-        .padding()
     }
 
     // MARK: - iCloud Sync
 
     private var syncTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.sync.rawValue, subtitle: "Sync snapshots across your Macs via iCloud") {
             Section {
                 Toggle("Enable iCloud Sync", isOn: Binding(
                     get: { syncService.isSyncEnabled },
@@ -148,80 +229,65 @@ struct SettingsView: View {
                     ? "Syncs your snapshots across all Macs signed into the same iCloud account. Requires restart to take effect."
                     : "iCloud sync requires a developer build of Snapshot Safari. See the GitHub repository for build instructions.")
             } header: {
-                Label("iCloud Sync", systemImage: "icloud")
+                Label("Sync", systemImage: "icloud")
             }
 
             if !syncService.iCloudEntitled {
                 Section {
                     Label("iCloud sync is unavailable in the public build.", systemImage: "icloud.slash")
                         .font(.callout)
-                        .foregroundStyle(.secondary)
                     Text("The iCloud / CloudKit entitlements require an Apple Developer ID signature. This public release is signed ad-hoc so it can be downloaded and run without a developer account.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Link("Build with iCloud — see the project README",
                          destination: URL(string: "https://github.com/ErnestHysa/snapshot-safari#icloud-sync")!)
                         .font(.caption)
+                } header: {
+                    Label("Developer Build Required", systemImage: "hammer")
                 }
             }
 
             Section {
                 LabeledContent("Container", value: syncService.cloudKitContainerIdentifier)
                     .font(.caption)
-
                 Text(syncService.syncStatusMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-
-            Section {
-                Text("Your snapshots will be synced across all your Macs signed into the same iCloud account. Requires iCloud to be enabled in System Settings.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
-                Text("Note: Changes to iCloud sync require an app restart to take effect.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+            } header: {
+                Label("Status", systemImage: "info.circle")
             }
         }
-        .tabItem { Label("Sync", systemImage: "icloud") }
-        .padding()
     }
 
     // MARK: - Appearance
 
     private var appearanceTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.appearance.rawValue, subtitle: "Theme and visual preferences") {
             Section {
                 Picker("Theme", selection: $selectedTheme) {
-                    ForEach(AppTheme.allCases, id: \.self) { theme in
-                        Text(theme.rawValue).tag(theme)
+                    ForEach(AppTheme.allCases) { theme in
+                        Label(theme.rawValue, systemImage: theme.icon).tag(theme)
                     }
                 }
-                .pickerStyle(.radioGroup)
+                .pickerStyle(.inline)
                 .accessibilityLabel("App theme")
                 .accessibilityHint("Choose between light, dark, or system appearance.")
             } header: {
-                Label("Appearance", systemImage: "paintpalette")
+                Label("Theme", systemImage: "paintpalette")
             }
         }
-        .tabItem { Label("Appearance", systemImage: "paintpalette") }
-        .padding()
     }
 
     // MARK: - Permissions
 
     private var permissionsTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.permissions.rawValue, subtitle: "Grant access to control Safari") {
             Section {
                 HStack {
                     Label(permissionsService.statusMessage, systemImage: "lock.shield")
                     Spacer()
                     if permissionsService.isChecking {
-                        ProgressView()
-                            .controlSize(.small)
+                        ProgressView().controlSize(.small)
                     }
                 }
 
@@ -237,23 +303,19 @@ struct SettingsView: View {
                 }
                 .accessibilityHint("Re-checks whether Snapshot Safari has Automation access to Safari.")
             } header: {
-                Label("Permissions", systemImage: "lock.shield")
-            }
-
-            Section {
+                Label("Automation", systemImage: "keyboard")
+            } footer: {
                 Text("Snapshot Safari needs Automation access to Safari to read and restore your tabs. Your data never leaves your Mac.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .tabItem { Label("Permissions", systemImage: "lock.shield") }
-        .padding()
     }
 
     // MARK: - Updates
 
     private var updatesTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.updates.rawValue, subtitle: "Auto-update delivery via Sparkle") {
             Section {
                 LabeledContent("Version", value: "1.0.0")
                 LabeledContent("Build", value: "1")
@@ -265,8 +327,7 @@ struct SettingsView: View {
                         Text("Check for Updates…")
                         Spacer()
                         if sparkleChecker.isChecking {
-                            ProgressView()
-                                .controlSize(.small)
+                            ProgressView().controlSize(.small)
                         }
                     }
                 }
@@ -288,53 +349,55 @@ struct SettingsView: View {
                     set: { SparkleUpdater.shared.automaticallyDownloadsUpdates = $0 }
                 ))
                 .accessibilityHint("When enabled, updates are downloaded in the background and installed on next launch.")
-            }
-
-            Section {
+            } header: {
+                Label("Background", systemImage: "arrow.triangle.2.circlepath")
+            } footer: {
                 Text("Snapshot Safari uses Sparkle to deliver updates. Your Mac will check for new versions when connected to the internet.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
-        .tabItem { Label("Updates", systemImage: "arrow.down.circle") }
-        .padding()
     }
 
     // MARK: - About
 
     private var aboutTab: some View {
-        Form {
+        SettingsPane(title: SettingsTab.about.rawValue, subtitle: "Snapshot Safari") {
+            Section {
+                HStack(spacing: 16) {
+                    Image(systemName: "camera.aperture")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.tint)
+                        .symbolRenderingMode(.hierarchical)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Snapshot Safari")
+                            .font(.title2.bold())
+                        Text("Save and restore your Safari tabs.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
             Section {
                 LabeledContent("Bundle ID", value: "com.ernest.snapshot-safari")
             } header: {
-                Label("About", systemImage: "info.circle")
+                Label("Build", systemImage: "info.circle")
             }
 
             Section {
-                Text("Built with ❤️ using SwiftUI, SwiftData, and Sparkle.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
-                Link("Snapshot Safari on GitHub", destination: URL(string: "https://github.com/ErnestHysa/snapshot-safari")!)
-                    .font(.caption)
-                    .accessibilityHint("Opens the Snapshot Safari repository on GitHub in your browser.")
+                Link("Snapshot Safari on GitHub",
+                     destination: URL(string: "https://github.com/ErnestHysa/snapshot-safari")!)
+                Link("Report an Issue",
+                     destination: URL(string: "https://github.com/ErnestHysa/snapshot-safari/issues")!)
+            } header: {
+                Label("Resources", systemImage: "link")
             }
         }
-        .tabItem { Label("About", systemImage: "info.circle") }
-        .padding()
     }
 
-    // MARK: - Helpers
-
-    private var customIntervalLabel: String {
-        if autoSnapshotManager.isCustomInterval {
-            let minutes = Int(autoSnapshotManager.interval / 60)
-            return "Custom (\(minutes) min)"
-        }
-        return "Custom…"
-    }
+    // MARK: - Custom Interval Sheet
 
     private var customIntervalSheet: some View {
         VStack(spacing: 16) {
@@ -373,6 +436,16 @@ struct SettingsView: View {
         .frame(width: 280)
     }
 
+    // MARK: - Helpers
+
+    private var customIntervalLabel: String {
+        if autoSnapshotManager.isCustomInterval {
+            let minutes = Int(autoSnapshotManager.interval / 60)
+            return "Custom (\(minutes) min)"
+        }
+        return "Custom…"
+    }
+
     private func loadSettings() {
         launchAtLogin = SMAppService.mainApp.status == .enabled
         let themeRaw = UserDefaults.standard.string(forKey: "appTheme") ?? "system"
@@ -392,10 +465,89 @@ struct SettingsView: View {
             if enabled {
                 try SMAppService.mainApp.register()
             } else {
-                try SMAppService.mainApp.unregister()
+                try? SMAppService.mainApp.unregister()
             }
         } catch {
             print("Failed to \(enabled ? "enable" : "disable") launch at login: \(error)")
         }
+    }
+}
+
+// MARK: - Reusable Pane
+
+/// Visual wrapper for a settings tab's content. Standardises the
+/// `.ultraThinMaterial` background, title, subtitle, and section spacing
+/// across every tab so the panel reads as one coherent design rather than
+/// seven independent forms.
+struct SettingsPane<Content: View>: View {
+    let title: String
+    let subtitle: String?
+    @ViewBuilder let content: Content
+
+    init(title: String, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.title2.bold())
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                content
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(.regularMaterial)
+    }
+}
+
+// MARK: - Window Host
+
+/// Hosts `SettingsView` in an `NSWindow` so the user gets native macOS window
+/// chrome — traffic-light buttons, draggable titlebar, ⌘W to close.
+/// `.sheet` on macOS doesn't provide this chrome by default.
+@MainActor
+enum SettingsWindow {
+    private static var window: NSWindow?
+
+    static func show(
+        autoSnapshotManager: AutoSnapshotManager,
+        permissionsService: PermissionsService
+    ) {
+        if let existing = window {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let hosting = NSHostingController(
+            rootView: SettingsView(
+                autoSnapshotManager: autoSnapshotManager,
+                permissionsService: permissionsService
+            )
+        )
+
+        let win = NSWindow(contentViewController: hosting)
+        win.title = "Snapshot Safari Settings"
+        win.styleMask = [.titled, .closable, .miniaturizable]
+        win.setContentSize(NSSize(width: 720, height: 520))
+        win.center()
+        win.titlebarAppearsTransparent = false
+        win.isReleasedWhenClosed = false
+        win.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        window = win
     }
 }
