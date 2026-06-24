@@ -47,6 +47,7 @@ struct RestoreOptionsSheet: View {
                     dismiss()
                 }
                 .keyboardShortcut(.escape)
+                .accessibilityLabel("Cancel restore")
 
                 Button("Restore") {
                     onRestore(selectedMode)
@@ -54,6 +55,8 @@ struct RestoreOptionsSheet: View {
                 }
                 .keyboardShortcut(.return)
                 .buttonStyle(.borderedProminent)
+                .accessibilityLabel("Restore tabs to Safari")
+                .accessibilityHint("Opens the selected tabs in Safari using the chosen mode.")
             }
         }
         .padding()

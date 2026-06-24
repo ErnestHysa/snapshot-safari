@@ -57,14 +57,16 @@ struct TrashView: View {
 
                             Spacer()
 
-                            Button {
-                                viewModel.restoreFromTrash(snapshot)
-                            } label: {
-                                Image(systemName: "arrow.uturn.backward")
-                                    .help("Restore")
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.tint)
+                        Button {
+                            viewModel.restoreFromTrash(snapshot)
+                        } label: {
+                            Image(systemName: "arrow.uturn.backward")
+                                .help("Restore")
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                        .accessibilityLabel("Restore \(snapshot.name)")
+                        .accessibilityHint("Moves this snapshot back to the main list.")
                         }
                         .padding(.vertical, 4)
                     }
@@ -84,11 +86,15 @@ struct TrashView: View {
                         viewModel.restoreAllFromTrash()
                     }
                     .buttonStyle(.borderedProminent)
+                    .accessibilityLabel("Restore all trashed snapshots")
+                    .accessibilityHint("Moves all deleted snapshots back to the main list.")
 
                     Button("Empty Trash…", role: .destructive) {
                         showingConfirmEmpty = true
                     }
                     .buttonStyle(.bordered)
+                    .accessibilityLabel("Permanently delete all trashed snapshots")
+                    .accessibilityHint("This action cannot be undone.")
                 }
 
                 Spacer()
@@ -98,6 +104,7 @@ struct TrashView: View {
                 }
                 .keyboardShortcut(.escape)
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Close trash view")
             }
             .padding()
             .background(.ultraThinMaterial)

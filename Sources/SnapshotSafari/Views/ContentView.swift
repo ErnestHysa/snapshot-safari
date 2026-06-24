@@ -31,8 +31,11 @@ struct ContentView: View {
                             TrashButton(count: viewModel.trashedSnapshots.count) {
                                 showingTrash = true
                             }
+                            .accessibilityLabel("Show recently deleted snapshots")
                         }
 
+                        importButton(with: viewModel)
+                        exportMenu(with: viewModel)
                         settingsButton
                         takeSnapshotButton(with: viewModel)
                     }
@@ -84,6 +87,22 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             showingSettings = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .importSnapshots)) { _ in
+            viewModel?.importSnapshotsFromFile()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .exportSnapshot)) { _ in
+            if let snapshot = viewModel?.selectedSnapshot {
+                viewModel?.exportSnapshot(snapshot)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .exportAllSnapshots)) { _ in
+            viewModel?.exportAllSnapshots()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .deleteSelectedSnapshot)) { _ in
+            if let snapshot = viewModel?.selectedSnapshot {
+                viewModel?.deleteSnapshot(snapshot)
+            }
+        }
     }
 
     // MARK: - Toolbar Sub-views
@@ -93,6 +112,8 @@ struct ContentView: View {
             Image(systemName: "gearshape")
         }
         .help("Settings")
+        .accessibilityLabel("Open settings")
+        .accessibilityHint("Opens the settings window with tabs for general, auto-snapshots, sync, appearance, permissions, updates, and about.")
     }
 
     private func takeSnapshotButton(with viewModel: SnapshotListViewModel) -> some View {
@@ -101,6 +122,8 @@ struct ContentView: View {
         }
         .help("Take Snapshot")
         .keyboardShortcut("n", modifiers: .command)
+        .accessibilityLabel("Take a new snapshot")
+        .accessibilityHint("Captures all open Safari tabs and saves them as a new snapshot.")
     }
 
     // MARK: - Actions
@@ -152,6 +175,37 @@ struct ContentView: View {
         viewModel?.errorMessage ?? "An unknown error occurred."
     }
 
+    private func importButton(with viewModel: SnapshotListViewModel) -> some View {
+        Button(action: { viewModel.importSnapshotsFromFile() }) {
+            Image(systemName: "square.and.arrow.down")
+        }
+        .help("Import Snapshots")
+        .keyboardShortcut("i", modifiers: .command)
+        .accessibilityLabel("Import snapshots from a file")
+        .accessibilityHint("Opens a file dialog to choose a Snapshot Safari export JSON file to import.")
+    }
+
+    private func exportMenu(with viewModel: SnapshotListViewModel) -> some View {
+        Menu {
+            Button("Export Selected…") {
+                if let snapshot = viewModel.selectedSnapshot {
+                    viewModel.exportSnapshot(snapshot)
+                }
+            }
+            .disabled(viewModel.selectedSnapshot == nil)
+
+            Button("Export All…") {
+                viewModel.exportAllSnapshots()
+            }
+            .disabled(viewModel.snapshots.isEmpty)
+        } label: {
+            Image(systemName: "square.and.arrow.up")
+        }
+        .help("Export Snapshots")
+        .accessibilityLabel("Export snapshots")
+        .accessibilityHint("Choose to export the selected snapshot or all snapshots to a JSON file.")
+    }
+
     private func checkFirstLaunch() {
         let hasLaunched = UserDefaults.standard.bool(forKey: "hasLaunchedBefore")
         if !hasLaunched {
@@ -188,5 +242,7 @@ private struct TrashButton: View {
                 }
         }
         .help("Recently Deleted (\(count))")
+        .accessibilityLabel("Recently deleted snapshots")
+        .accessibilityHint("Opens the trash view with \(count) deleted snapshots that can be restored.")
     }
 }

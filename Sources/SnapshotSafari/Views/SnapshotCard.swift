@@ -67,6 +67,9 @@ struct SnapshotCard: View {
         .onAppear {
             loadPreviewFavicons()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(snapshot.name)
+        .accessibilityValue("\(snapshot.tabCount) tabs, \(snapshot.timeAgo)")
     }
 
     private func loadPreviewFavicons() {

@@ -131,4 +131,69 @@ final class SnapshotListViewModel {
         snapshotDiff = snapshotService.compareSnapshots(older, newer)
         showComparison = true
     }
+
+    // MARK: - Export / Import
+
+    /// Export the selected snapshot to JSON and present a save dialog.
+    func exportSnapshot(_ snapshot: Snapshot) {
+        do {
+            let data = try snapshotService.exportSnapshotToJSON(snapshot)
+            try presentSaveDialog(data: data, defaultName: sanitizedFileName(snapshot.name))
+        } catch {
+            errorMessage = "Export failed: \(error.localizedDescription)"
+            showError = true
+        }
+    }
+
+    /// Export all non-trashed snapshots to JSON.
+    func exportAllSnapshots() {
+        do {
+            let data = try snapshotService.exportMultipleSnapshotsToJSON(snapshots)
+            try presentSaveDialog(data: data, defaultName: "All Snapshots")
+        } catch {
+            errorMessage = "Export failed: \(error.localizedDescription)"
+            showError = true
+        }
+    }
+
+    /// Present a file import dialog and import the selected JSON file.
+    func importSnapshotsFromFile() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.json]
+        panel.message = "Choose a Snapshot Safari export file to import"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let count = try snapshotService.importSnapshots(from: data)
+            refresh()
+            errorMessage = "Imported \(count) snapshot\(count == 1 ? "" : "s") successfully."
+            showError = true
+        } catch {
+            errorMessage = "Import failed: \(error.localizedDescription)"
+            showError = true
+        }
+    }
+
+    /// Present a save dialog and write the data to disk.
+    private func presentSaveDialog(data: Data, defaultName: String) throws {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "\(defaultName).json"
+        panel.message = "Choose where to save the snapshot export"
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        try data.write(to: url)
+    }
+
+    /// Create a safe file name from the snapshot name.
+    private func sanitizedFileName(_ name: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(.whitespaces).union(CharacterSet(charactersIn: "-_"))
+        return String(name.unicodeScalars.filter { allowed.contains($0) }).trimmingCharacters(in: .whitespaces)
+    }
 }

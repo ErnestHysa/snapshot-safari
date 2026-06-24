@@ -37,6 +37,7 @@ struct SnapshotDetailView: View {
                     HStack {
                         Text(snapshot.name)
                             .font(.title2.bold())
+                            .accessibilityLabel("Snapshot name: \(snapshot.name)")
                         Button {
                             editedName = snapshot.name
                             isEditingName = true
@@ -47,14 +48,18 @@ struct SnapshotDetailView: View {
                         }
                         .buttonStyle(.plain)
                         .help("Rename")
+                        .accessibilityLabel("Rename snapshot")
+                        .accessibilityHint("Edit the name of this snapshot.")
                     }
                 }
 
                 HStack(spacing: 8) {
                     Label(snapshot.formattedDate, systemImage: "calendar")
+                        .accessibilityLabel("Created on \(snapshot.formattedDate)")
                     Text("•")
                         .foregroundStyle(.tertiary)
                     Label("\(snapshot.tabCount) tab\(snapshot.tabCount == 1 ? "" : "s")", systemImage: "square.on.square")
+                        .accessibilityLabel("\(snapshot.tabCount) tabs")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -95,6 +100,8 @@ struct SnapshotDetailView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(snapshot.tabs.isEmpty)
+                .accessibilityLabel("Restore all tabs")
+                .accessibilityHint("Opens all tabs from this snapshot in Safari, choosing new or current window.")
 
                 if !selectedTabs.isEmpty {
                     Button {
@@ -103,7 +110,19 @@ struct SnapshotDetailView: View {
                         Label("Restore Selected (\(selectedTabs.count))", systemImage: "arrow.up.doc")
                     }
                     .buttonStyle(.bordered)
+                    .accessibilityLabel("Restore \(selectedTabs.count) selected tabs")
                 }
+
+                Button {
+                    viewModel.exportSnapshot(snapshot)
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .buttonStyle(.bordered)
+                .help("Export Snapshot")
+                .keyboardShortcut("e", modifiers: .command)
+                .accessibilityLabel("Export this snapshot")
+                .accessibilityHint("Saves this snapshot as a JSON file that can be imported later.")
 
                 Spacer()
 
@@ -114,6 +133,9 @@ struct SnapshotDetailView: View {
                 }
                 .buttonStyle(.bordered)
                 .help("Delete Snapshot")
+                .keyboardShortcut(.delete, modifiers: .command)
+                .accessibilityLabel("Delete this snapshot")
+                .accessibilityHint("Moves this snapshot to the trash. It can be restored later.")
             }
             .padding()
             .background(.ultraThinMaterial)

@@ -34,12 +34,34 @@ struct SnapshotSafariApp: App {
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
+                Button("Import Snapshots…") {
+                    NotificationCenter.default.post(name: .importSnapshots, object: nil)
+                }
+                .keyboardShortcut("i", modifiers: .command)
+
+                Button("Export Selected…") {
+                    NotificationCenter.default.post(name: .exportSnapshot, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: .command)
+
+                Button("Export All…") {
+                    NotificationCenter.default.post(name: .exportAllSnapshots, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+
                 Divider()
 
                 Button("Settings…") {
                     NotificationCenter.default.post(name: .openSettings, object: nil)
                 }
                 .keyboardShortcut(",", modifiers: .command)
+            }
+
+            CommandGroup(after: .pasteboard) {
+                Button("Delete Snapshot") {
+                    NotificationCenter.default.post(name: .deleteSelectedSnapshot, object: nil)
+                }
+                .keyboardShortcut(.delete, modifiers: .command)
             }
 
             CommandGroup(after: .appInfo) {
@@ -103,4 +125,10 @@ struct SnapshotSafariApp: App {
 extension Notification.Name {
     static let takeSnapshot = Notification.Name("takeSnapshot")
     static let openSettings = Notification.Name("openSettings")
+    static let importSnapshots = Notification.Name("importSnapshots")
+    static let exportSnapshot = Notification.Name("exportSnapshot")
+    static let exportAllSnapshots = Notification.Name("exportAllSnapshots")
+    static let deleteSelectedSnapshot = Notification.Name("deleteSelectedSnapshot")
+    static let renameSelectedSnapshot = Notification.Name("renameSelectedSnapshot")
+    static let compareSelectedSnapshot = Notification.Name("compareSelectedSnapshot")
 }

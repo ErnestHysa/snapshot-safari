@@ -54,10 +54,12 @@ struct TabRow: View {
         .animation(.easeInOut(duration: 0.12), value: isHovering)
         .onHover { hovering in
             isHovering = hovering
-        }
-        .onAppear {
-            loadFavicon()
-        }
+        }        .onAppear {
+                loadFavicon()
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(tab.title.isEmpty ? tab.url : tab.title)
+            .accessibilityValue("\(tab.domain) — \(tab.url)")
     }
 
     private func loadFavicon() {

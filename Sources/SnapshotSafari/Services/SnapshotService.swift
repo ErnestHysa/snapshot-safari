@@ -158,6 +158,70 @@ final class SnapshotService {
         SnapshotDiff.compute(between: older, and: newer)
     }
 
+    // MARK: - Export / Import
+
+    /// Export a single snapshot to JSON data.
+    func exportSnapshotToJSON(_ snapshot: Snapshot) throws -> Data {
+        try SnapshotExport.create(from: [snapshot]).jsonData()
+    }
+
+    /// Export multiple snapshots to JSON data.
+    func exportMultipleSnapshotsToJSON(_ snapshots: [Snapshot]) throws -> Data {
+        try SnapshotExport.create(from: snapshots).jsonData()
+    }
+
+    /// Import snapshots from JSON data.
+    /// Returns the number of snapshots imported.
+    @discardableResult
+    func importSnapshots(from jsonData: Data) throws -> Int {
+        let export = try SnapshotExport.from(jsonData: jsonData)
+
+        guard export.version == SnapshotExport.currentVersion else {
+            throw ExportError.unsupportedVersion(export.version)
+        }
+
+        for exportedSnapshot in export.snapshots {
+            let tabEntries = exportedSnapshot.tabs.map { tab in
+                TabEntry(
+                    url: tab.url,
+                    title: tab.title,
+                    windowIndex: tab.windowIndex,
+                    index: tab.index
+                )
+            }
+
+            let snapshot = Snapshot(
+                name: exportedSnapshot.name,
+                tabs: tabEntries,
+                isAutoSnapshot: exportedSnapshot.isAutoSnapshot
+            )
+            // Preserve the original creation date
+            snapshot.createdAt = exportedSnapshot.createdAt
+            snapshot.updatedAt = exportedSnapshot.createdAt
+
+            modelContext.insert(snapshot)
+        }
+
+        try modelContext.save()
+        return export.snapshots.count
+    }
+
+    // MARK: - Export Errors
+
+    enum ExportError: LocalizedError, Equatable {
+        case unsupportedVersion(Int)
+
+        var errorDescription: String? {
+            switch self {
+            case .unsupportedVersion(let version):
+                if version > SnapshotExport.currentVersion {
+                    return "This file was created by a newer version of Snapshot Safari. Please update to import it."
+                }
+                return "Unsupported export format version \(version)."
+            }
+        }
+    }
+
     // MARK: - Legacy Delete (for backward compat - delegates to trash)
 
     func deleteSnapshot(_ snapshot: Snapshot) {

@@ -96,6 +96,7 @@ struct CompareSnapshotsView: View {
                 }
                 .keyboardShortcut(.escape)
                 .buttonStyle(.bordered)
+                .accessibilityLabel("Close comparison view")
             }
             .padding()
             .background(.ultraThinMaterial)
@@ -141,6 +142,14 @@ private struct DiffTabRow: View {
     let tab: TabEntry
     let change: ChangeType
 
+    private var changeDescription: String {
+        switch change {
+        case .added: return "Added tab"
+        case .removed: return "Removed tab"
+        case .common: return "Unchanged tab"
+        }
+    }
+
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: change.icon)
@@ -171,5 +180,8 @@ private struct DiffTabRow: View {
         }
         .opacity(change == .common ? 0.6 : 1.0)
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(changeDescription): \(tab.title.isEmpty ? tab.url : tab.title)")
+        .accessibilityValue(tab.url)
     }
 }

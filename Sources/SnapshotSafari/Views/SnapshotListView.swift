@@ -10,10 +10,18 @@ struct SnapshotListView: View {
                 NavigationLink(value: snapshot) {
                     SnapshotCard(snapshot: snapshot)
                 }
+                .accessibilityLabel("\(snapshot.name), \(snapshot.tabCount) tabs, \(snapshot.timeAgo)")
+                .accessibilityHint("Select to view and restore tabs from this snapshot.")
                 .contextMenu {
                     Button("Rename…") {
                         viewModel.selectedSnapshot = snapshot
                     }
+                    .accessibilityLabel("Rename this snapshot")
+
+                    Button("Export…") {
+                        viewModel.exportSnapshot(snapshot)
+                    }
+                    .accessibilityLabel("Export this snapshot to a file")
 
                     if viewModel.snapshots.count >= 2 {
                         Menu("Compare With…") {
@@ -26,6 +34,7 @@ struct SnapshotListView: View {
                                         viewModel.compareSnapshots(other, snapshot)
                                     }
                                 }
+                                .accessibilityLabel("Compare with \(other.name)")
                             }
                         }
                     }
@@ -35,6 +44,8 @@ struct SnapshotListView: View {
                     Button("Delete", role: .destructive) {
                         viewModel.deleteSnapshot(snapshot)
                     }
+                    .accessibilityLabel("Delete this snapshot")
+                    .accessibilityHint("Moves this snapshot to the trash.")
                 }
             }
             .onDelete { indexSet in
