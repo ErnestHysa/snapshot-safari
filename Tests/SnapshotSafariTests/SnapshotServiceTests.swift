@@ -15,6 +15,7 @@ func createTestContainer() -> ModelContainer {
 
 /// Creates a snapshot with sample tabs for testing
 @MainActor
+@discardableResult
 func createSampleSnapshot(in context: ModelContext) -> Snapshot {
     let tabs = [
         TabEntry(url: "https://apple.com", title: "Apple", windowIndex: 0, index: 0),
@@ -122,10 +123,30 @@ struct SnapshotServiceTests {
         #expect(fetched[0].name == "Persisted Name")
     }
 
-    // MARK: - Delete
+    // MARK: - Delete / Trash
 
-    @Test("deleteSnapshot removes the snapshot and its tabs")
-    func deleteSnapshot() {
+    @Test("trashSnapshot marks snapshot as trashed and sets deletedAt")
+    func trashSnapshot() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let snapshot = createSampleSnapshot(in: context)
+        #expect(snapshot.isTrashed == false)
+        #expect(snapshot.deletedAt == nil)
+
+        service.trashSnapshot(snapshot)
+
+        #expect(snapshot.isTrashed == true)
+        #expect(snapshot.deletedAt != nil)
+        // Snapshot should NOT be removed from the context — just marked as trashed
+        let allSnapshots = try! context.fetch(FetchDescriptor<Snapshot>())
+        #expect(allSnapshots.count == 1)
+        #expect(allSnapshots[0].isTrashed == true)
+    }
+
+    @Test("permanentlyDelete removes the snapshot and its tabs")
+    func permanentlyDelete() {
         let container = createTestContainer()
         let context = container.mainContext
         let service = SnapshotService(modelContext: context)
@@ -134,14 +155,83 @@ struct SnapshotServiceTests {
         #expect(try! context.fetch(FetchDescriptor<Snapshot>()).count == 1)
         #expect(try! context.fetch(FetchDescriptor<TabEntry>()).count == 3)
 
-        service.deleteSnapshot(snapshot)
+        service.permanentlyDelete(snapshot)
 
         #expect(try! context.fetch(FetchDescriptor<Snapshot>()).isEmpty)
         #expect(try! context.fetch(FetchDescriptor<TabEntry>()).isEmpty) // cascade delete
     }
 
-    @Test("deleteSnapshots removes multiple snapshots")
-    func deleteMultiple() {
+    @Test("restoreFromTrash sets isTrashed back to false")
+    func restoreFromTrash() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let snapshot = createSampleSnapshot(in: context)
+        service.trashSnapshot(snapshot)
+        #expect(snapshot.isTrashed == true)
+
+        service.restoreFromTrash(snapshot)
+
+        #expect(snapshot.isTrashed == false)
+        #expect(snapshot.deletedAt == nil)
+    }
+
+    @Test("fetchTrashedSnapshots returns only trashed snapshots")
+    func fetchTrashed() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let snapshot = createSampleSnapshot(in: context)
+        #expect(service.fetchTrashedSnapshots().isEmpty)
+
+        service.trashSnapshot(snapshot)
+
+        let trashed = service.fetchTrashedSnapshots()
+        #expect(trashed.count == 1)
+        #expect(trashed[0].id == snapshot.id)
+
+        // fetchAll should exclude trashed
+        #expect(service.fetchAllSnapshots().isEmpty)
+    }
+
+    @Test("restoreAllFromTrash restores all trashed snapshots")
+    func restoreAllFromTrash() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let s1 = createSampleSnapshot(in: context)
+        let s2 = createSampleSnapshot(in: context)
+        service.trashSnapshots([s1, s2])
+
+        #expect(service.fetchTrashedSnapshots().count == 2)
+
+        service.restoreAllFromTrash()
+
+        #expect(service.fetchTrashedSnapshots().isEmpty)
+        #expect(service.fetchAllSnapshots().count == 2)
+    }
+
+    @Test("permanentlyDeleteAllTrashed removes all trashed snapshots")
+    func emptyTrash() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let s1 = createSampleSnapshot(in: context)
+        let s2 = createSampleSnapshot(in: context)
+        service.trashSnapshots([s1, s2])
+
+        service.permanentlyDeleteAllTrashed()
+
+        #expect(service.fetchTrashedSnapshots().isEmpty)
+        #expect(service.fetchAllSnapshots().isEmpty)
+    }
+
+    @Test("fetchAllSnapshots excludes trashed snapshots")
+    func fetchExcludesTrashed() {
         let container = createTestContainer()
         let context = container.mainContext
         let service = SnapshotService(modelContext: context)
@@ -149,11 +239,11 @@ struct SnapshotServiceTests {
         let s1 = createSampleSnapshot(in: context)
         let s2 = createSampleSnapshot(in: context)
 
-        #expect(try! context.fetch(FetchDescriptor<Snapshot>()).count == 2)
+        service.trashSnapshot(s1)
 
-        service.deleteSnapshots([s1, s2])
-
-        #expect(try! context.fetch(FetchDescriptor<Snapshot>()).isEmpty)
+        let snapshots = service.fetchAllSnapshots()
+        #expect(snapshots.count == 1)
+        #expect(snapshots[0].id == s2.id)
     }
 
     // MARK: - Search
@@ -272,6 +362,60 @@ struct SnapshotServiceTests {
         let results = service.searchSnapshots(query: "apple")
         #expect(results.count == 1)
         #expect(results[0].name.contains("Test"))
+    }
+
+    @Test("searchSnapshots excludes trashed snapshots")
+    func searchExcludesTrashed() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let snapshot = createSampleSnapshot(in: context) // has apple.com
+        service.trashSnapshot(snapshot)
+
+        // Search should not return trashed snapshots even when query matches
+        let results = service.searchSnapshots(query: "apple")
+        #expect(results.isEmpty)
+    }
+
+    // MARK: - Clean Up Old Trash
+
+    @Test("cleanUpOldTrash removes snapshots deleted more than 30 days ago")
+    func cleanUpOldTrash() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        // Create a snapshot and set it as trashed 31 days ago
+        let snapshot = createSampleSnapshot(in: context)
+        snapshot.isTrashed = true
+        snapshot.deletedAt = Date().addingTimeInterval(-31 * 24 * 3600) // 31 days ago
+        try! context.save()
+
+        #expect(service.fetchTrashedSnapshots().count == 1)
+
+        service.cleanUpOldTrash()
+
+        #expect(service.fetchTrashedSnapshots().isEmpty)
+        // Should also be gone from permanent store
+        let all = try! context.fetch(FetchDescriptor<Snapshot>())
+        #expect(all.isEmpty)
+    }
+
+    @Test("cleanUpOldTrash does not remove recently deleted snapshots")
+    func cleanUpOldTrashKeepsRecent() {
+        let container = createTestContainer()
+        let context = container.mainContext
+        let service = SnapshotService(modelContext: context)
+
+        let snapshot = createSampleSnapshot(in: context)
+        snapshot.isTrashed = true
+        snapshot.deletedAt = Date().addingTimeInterval(-24 * 3600) // 1 day ago
+        try! context.save()
+
+        service.cleanUpOldTrash()
+
+        #expect(service.fetchTrashedSnapshots().count == 1)
     }
 
     // MARK: - Tab Count

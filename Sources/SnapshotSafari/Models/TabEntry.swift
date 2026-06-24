@@ -3,8 +3,6 @@ import SwiftData
 
 @Model
 final class TabEntry {
-    #Unique<TabEntry>([\.id])
-
     var id: UUID
     var url: String
     var domain: String

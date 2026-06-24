@@ -8,12 +8,13 @@ struct ContentView: View {
     @State private var permissionsService = PermissionsService()
     @State private var showingSettings = false
     @State private var showingWelcome = false
+    @State private var showingTrash = false
 
     var body: some View {
         Group {
             if let viewModel, let autoSnapshotManager {
                 NavigationSplitView {
-                    SnapshotListView(viewModel: viewModel)
+                    sidebar(viewModel: viewModel)
                 } detail: {
                     if let snapshot = viewModel.selectedSnapshot {
                         SnapshotDetailView(
@@ -26,18 +27,14 @@ struct ContentView: View {
                 }
                 .toolbar {
                     ToolbarItemGroup {
-                        Button(action: { showingSettings = true }) {
-                            Image(systemName: "gearshape")
+                        if !viewModel.trashedSnapshots.isEmpty {
+                            TrashButton(count: viewModel.trashedSnapshots.count) {
+                                showingTrash = true
+                            }
                         }
-                        .help("Settings")
 
-                        Button(action: {
-                            Task { await viewModel.takeSnapshot() }
-                        }) {
-                            Image(systemName: "camera.fill")
-                        }
-                        .help("Take Snapshot")
-                        .keyboardShortcut("n", modifiers: .command)
+                        settingsButton
+                        takeSnapshotButton(with: viewModel)
                     }
                 }
                 .sheet(isPresented: $showingSettings) {
@@ -49,27 +46,32 @@ struct ContentView: View {
                 .sheet(isPresented: $showingWelcome) {
                     WelcomeView(permissionsService: permissionsService)
                 }
+                .sheet(isPresented: $showingTrash) {
+                    TrashView(viewModel: viewModel)
+                }
+                .sheet(isPresented: comparisonBinding(for: viewModel)) {
+                    if let diff = viewModel.snapshotDiff {
+                        CompareSnapshotsView(diff: diff)
+                    }
+                }
                 .onAppear {
                     checkFirstLaunch()
                 }
-                .alert("Error", isPresented: Binding(
-                    get: { viewModel.showError },
-                    set: { viewModel.showError = $0 }
-                )) {
+                .alert("Error", isPresented: errorAlertBinding(for: viewModel)) {
                     Button("OK") {}
                 } message: {
-                    Text(viewModel.errorMessage ?? "An unknown error occurred.")
+                    Text(errorMessage)
                 }
                 .overlay {
                     if viewModel.isLoading {
-                        ProgressView("Working with Safari…")
+                        ProgressView("Working with Safari\u{2026}")
                             .padding()
                             .background(.ultraThinMaterial)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
             } else {
-                ProgressView("Loading…")
+                ProgressView("Loading\u{2026}")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
@@ -84,6 +86,51 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Toolbar Sub-views
+
+    private var settingsButton: some View {
+        Button(action: { showingSettings = true }) {
+            Image(systemName: "gearshape")
+        }
+        .help("Settings")
+    }
+
+    private func takeSnapshotButton(with viewModel: SnapshotListViewModel) -> some View {
+        Button(action: { takeSnapshot(viewModel) }) {
+            Image(systemName: "camera.fill")
+        }
+        .help("Take Snapshot")
+        .keyboardShortcut("n", modifiers: .command)
+    }
+
+    // MARK: - Actions
+
+    private func takeSnapshot(_ viewModel: SnapshotListViewModel) {
+        Task { await viewModel.takeSnapshot() }
+    }
+
+    // MARK: - Bindings
+
+    private func comparisonBinding(for viewModel: SnapshotListViewModel) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.showComparison },
+            set: { viewModel.showComparison = $0 }
+        )
+    }
+
+    private func errorAlertBinding(for viewModel: SnapshotListViewModel) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.showError },
+            set: { viewModel.showError = $0 }
+        )
+    }
+
+    // MARK: - Sidebar
+
+    private func sidebar(viewModel: SnapshotListViewModel) -> some View {
+        SnapshotListView(viewModel: viewModel)
+    }
+
     private var emptyState: some View {
         ContentUnavailableView(
             "No Snapshot Selected",
@@ -92,11 +139,17 @@ struct ContentView: View {
         )
     }
 
+    // MARK: - Lifecycle
+
     private func initializeServices() {
         guard viewModel == nil else { return }
         let service = SnapshotService(modelContext: modelContext)
         viewModel = SnapshotListViewModel(snapshotService: service)
         autoSnapshotManager = AutoSnapshotManager(snapshotService: service)
+    }
+
+    private var errorMessage: String {
+        viewModel?.errorMessage ?? "An unknown error occurred."
     }
 
     private func checkFirstLaunch() {
@@ -109,5 +162,31 @@ struct ContentView: View {
         Task {
             await permissionsService.checkAutomationPermission()
         }
+    }
+}
+
+// MARK: - Trash Button
+
+private struct TrashButton: View {
+    let count: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "trash.fill")
+                .overlay(alignment: .topTrailing) {
+                    if count > 0 {
+                        Text("\(count)")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 3)
+                            .padding(.vertical, 1)
+                            .background(Color.red)
+                            .clipShape(Capsule())
+                            .offset(x: 6, y: -6)
+                    }
+                }
+        }
+        .help("Recently Deleted (\(count))")
     }
 }

@@ -7,6 +7,7 @@ struct SnapshotSafariApp: App {
 
     @State private var selectedTheme: AppTheme = .system
     @State private var updateChecker = SparkleUpdateChecker.shared
+    @State private var syncService = SyncService.shared
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +15,10 @@ struct SnapshotSafariApp: App {
                 .preferredColorScheme(selectedTheme.colorScheme)
                 .onAppear {
                     loadTheme()
+                    // Clean up old trash on launch
+                    let context = container.mainContext
+                    let service = SnapshotService(modelContext: context)
+                    service.cleanUpOldTrash()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
                     loadTheme()
@@ -48,11 +53,25 @@ struct SnapshotSafariApp: App {
 
     init() {
         let schema = Schema([Snapshot.self, TabEntry.self])
-        let config = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            allowsSave: true
-        )
+
+        // Configure for CloudKit if the user has enabled it.
+        let isCloudSyncEnabled = SyncService.shared.isSyncEnabled
+        let config: ModelConfiguration
+
+        if isCloudSyncEnabled {
+            config = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true,
+                cloudKitDatabase: .automatic
+            )
+        } else {
+            config = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: false,
+                allowsSave: true
+            )
+        }
 
         do {
             container = try ModelContainer(for: schema, configurations: [config])

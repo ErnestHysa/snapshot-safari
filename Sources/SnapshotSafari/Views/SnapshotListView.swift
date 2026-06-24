@@ -14,6 +14,24 @@ struct SnapshotListView: View {
                     Button("Rename…") {
                         viewModel.selectedSnapshot = snapshot
                     }
+
+                    if viewModel.snapshots.count >= 2 {
+                        Menu("Compare With…") {
+                            ForEach(viewModel.snapshots.filter { $0.id != snapshot.id }) { other in
+                                Button(other.name) {
+                                    // Determine older/newer by date
+                                    if snapshot.createdAt < other.createdAt {
+                                        viewModel.compareSnapshots(snapshot, other)
+                                    } else {
+                                        viewModel.compareSnapshots(other, snapshot)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Divider()
+
                     Button("Delete", role: .destructive) {
                         viewModel.deleteSnapshot(snapshot)
                     }

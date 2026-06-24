@@ -41,19 +41,32 @@ final class SnapshotService {
 
     // MARK: - Read
 
+    /// All snapshots that are not trashed
     func fetchAllSnapshots() -> [Snapshot] {
         let descriptor = FetchDescriptor<Snapshot>(
+            predicate: #Predicate { !$0.isTrashed },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
+    /// Only trashed snapshots (recently deleted)
+    func fetchTrashedSnapshots() -> [Snapshot] {
+        let descriptor = FetchDescriptor<Snapshot>(
+            predicate: #Predicate { $0.isTrashed },
+            sortBy: [SortDescriptor(\.deletedAt, order: .reverse)]
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
+    }
+
+    /// Search across non-trashed snapshots
     func searchSnapshots(query: String) -> [Snapshot] {
         guard !query.isEmpty else { return fetchAllSnapshots() }
 
         let lowercased = query.lowercased()
 
         let descriptor = FetchDescriptor<Snapshot>(
+            predicate: #Predicate { !$0.isTrashed },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
 
@@ -69,7 +82,7 @@ final class SnapshotService {
         }
     }
 
-    // MARK: - Update
+    // MARK: - Update / Rename
 
     func renameSnapshot(_ snapshot: Snapshot, to newName: String) {
         snapshot.name = newName
@@ -77,18 +90,82 @@ final class SnapshotService {
         try? modelContext.save()
     }
 
-    // MARK: - Delete
+    // MARK: - Soft Delete (Undo-capable)
 
-    func deleteSnapshot(_ snapshot: Snapshot) {
+    /// Move to trash instead of permanent delete
+    func trashSnapshot(_ snapshot: Snapshot) {
+        snapshot.isTrashed = true
+        snapshot.deletedAt = Date()
+        try? modelContext.save()
+    }
+
+    func trashSnapshots(_ snapshots: [Snapshot]) {
+        for snapshot in snapshots {
+            snapshot.isTrashed = true
+            snapshot.deletedAt = Date()
+        }
+        try? modelContext.save()
+    }
+
+    /// Restore from trash
+    func restoreFromTrash(_ snapshot: Snapshot) {
+        snapshot.isTrashed = false
+        snapshot.deletedAt = nil
+        try? modelContext.save()
+    }
+
+    func restoreAllFromTrash() {
+        let trashed = fetchTrashedSnapshots()
+        for snapshot in trashed {
+            snapshot.isTrashed = false
+            snapshot.deletedAt = nil
+        }
+        try? modelContext.save()
+    }
+
+    /// Permanently delete (removes from SwiftData)
+    func permanentlyDelete(_ snapshot: Snapshot) {
         modelContext.delete(snapshot)
         try? modelContext.save()
     }
 
-    func deleteSnapshots(_ snapshots: [Snapshot]) {
-        for snapshot in snapshots {
+    func permanentlyDeleteAllTrashed() {
+        let trashed = fetchTrashedSnapshots()
+        for snapshot in trashed {
             modelContext.delete(snapshot)
         }
         try? modelContext.save()
+    }
+
+    /// Auto-cleanup trash older than 30 days
+    func cleanUpOldTrash() {
+        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3600)
+        // Fetch all trashed snapshots, filter in-memory
+        let trashed = fetchTrashedSnapshots()
+        let oldOnes = trashed.filter { ($0.deletedAt ?? Date.distantPast) < thirtyDaysAgo }
+        for snapshot in oldOnes {
+            modelContext.delete(snapshot)
+        }
+        if !oldOnes.isEmpty {
+            try? modelContext.save()
+        }
+    }
+
+    // MARK: - Comparison
+
+    /// Compute the diff between two snapshots
+    func compareSnapshots(_ older: Snapshot, _ newer: Snapshot) -> SnapshotDiff {
+        SnapshotDiff.compute(between: older, and: newer)
+    }
+
+    // MARK: - Legacy Delete (for backward compat - delegates to trash)
+
+    func deleteSnapshot(_ snapshot: Snapshot) {
+        trashSnapshot(snapshot)
+    }
+
+    func deleteSnapshots(_ snapshots: [Snapshot]) {
+        trashSnapshots(snapshots)
     }
 
     // MARK: - Restore

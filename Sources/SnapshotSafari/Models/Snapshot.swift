@@ -3,18 +3,19 @@ import SwiftData
 
 @Model
 final class Snapshot {
-    #Unique<Snapshot>([\.id])
-
     var id: UUID
     var name: String
     var createdAt: Date
     var updatedAt: Date
     var isAutoSnapshot: Bool
+
+    /// Soft-delete support for undo
+    var isTrashed: Bool
+    var deletedAt: Date?
+
     @Relationship(deleteRule: .cascade, inverse: \TabEntry.snapshot) var tabs: [TabEntry]
 
-    var tabCount: Int {
-        tabs.count
-    }
+    var tabCount: Int { tabs.count }
 
     var formattedDate: String {
         createdAt.formatted(date: .abbreviated, time: .shortened)
@@ -41,9 +42,10 @@ final class Snapshot {
         self.name = name
         self.tabs = tabs
         self.isAutoSnapshot = isAutoSnapshot
+        self.isTrashed = false
+        self.deletedAt = nil
         self.createdAt = Date()
         self.updatedAt = Date()
-        // Set the inverse relationship so SwiftData can validate it
         for tab in tabs {
             tab.snapshot = self
         }
