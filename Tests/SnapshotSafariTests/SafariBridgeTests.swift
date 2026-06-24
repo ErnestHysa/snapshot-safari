@@ -97,7 +97,7 @@ struct SafariBridgeErrorTests {
     @Test("permissionDenied has correct description")
     func permissionDeniedDescription() {
         let error = SafariBridgeError.permissionDenied
-        #expect(error.errorDescription == "Permission denied. Grant Automation access to Safari in System Settings > Privacy & Security > Automation.")
+        #expect(error.errorDescription == "Snapshot Safari doesn't have permission to control Safari. Grant Automation access in System Settings → Privacy & Security → Automation.")
     }
 
     @Test("scriptError includes detail")

@@ -14,6 +14,14 @@ struct SyncServiceTests {
         SyncService.shared.isSyncEnabled = false
         SyncService.shared.isCloudAvailable = false
         SyncService.shared.lastSyncDate = nil
+        SyncService.setICloudEntitledForTesting(nil)
+    }
+
+    /// Configure the service as if running in a developer-signed build that
+    /// carries the iCloud entitlements. Default for most existing tests so
+    /// behavior matches the previous expectations.
+    private func assumeDeveloperBuild() {
+        SyncService.setICloudEntitledForTesting(true)
     }
 
     // MARK: - Default State
@@ -46,9 +54,10 @@ struct SyncServiceTests {
         #expect(SyncService.shared.isSyncing == false)
     }
 
-    @Test("isSyncing is true only when both enabled and available")
+    @Test("isSyncing is true only when enabled, available, AND entitled")
     func isSyncingBoth() {
         resetService()
+        assumeDeveloperBuild()
         SyncService.shared.isSyncEnabled = true
         SyncService.shared.isCloudAvailable = true
         #expect(SyncService.shared.isSyncing == true)
@@ -62,9 +71,10 @@ struct SyncServiceTests {
         #expect(SyncService.shared.cloudKitContainerIdentifier == "iCloud.com.ernest.snapshot-safari")
     }
 
-    @Test("isCloudKitConfigured mirrors isSyncEnabled")
+    @Test("isCloudKitConfigured mirrors isSyncEnabled when entitled")
     func cloudKitConfigured() {
         resetService()
+        assumeDeveloperBuild()
         SyncService.shared.isSyncEnabled = true
         #expect(SyncService.shared.isCloudKitConfigured == true)
 
@@ -72,11 +82,34 @@ struct SyncServiceTests {
         #expect(SyncService.shared.isCloudKitConfigured == false)
     }
 
+    @Test("isCloudKitConfigured is false when not entitled even if sync enabled")
+    func cloudKitConfiguredNotEntitled() {
+        resetService()
+        // No assumeDeveloperBuild — public build.
+        SyncService.shared.isSyncEnabled = true
+        #expect(SyncService.shared.isCloudKitConfigured == false)
+    }
+
+    @Test("iCloudEntitled respects test override")
+    func iCloudEntitledOverride() {
+        resetService()
+        SyncService.setICloudEntitledForTesting(true)
+        #expect(SyncService.shared.iCloudEntitled == true)
+
+        SyncService.setICloudEntitledForTesting(false)
+        #expect(SyncService.shared.iCloudEntitled == false)
+
+        SyncService.setICloudEntitledForTesting(nil)
+        // Falls back to runtime-detected value (false in xctest).
+        #expect(SyncService.shared.iCloudEntitled == false)
+    }
+
     // MARK: - Status Messages
 
     @Test("syncStatusMessage shows disabled when sync is off")
     func statusDisabled() {
         resetService()
+        assumeDeveloperBuild()
         SyncService.shared.isSyncEnabled = false
         #expect(SyncService.shared.syncStatusMessage == "iCloud sync is disabled")
     }
@@ -84,6 +117,7 @@ struct SyncServiceTests {
     @Test("syncStatusMessage shows unavailable when cloud not available")
     func statusCloudUnavailable() {
         resetService()
+        assumeDeveloperBuild()
         SyncService.shared.isSyncEnabled = true
         SyncService.shared.isCloudAvailable = false
         #expect(SyncService.shared.syncStatusMessage == "iCloud unavailable — sign into iCloud in System Settings")
@@ -92,6 +126,7 @@ struct SyncServiceTests {
     @Test("syncStatusMessage shows enabled when sync is on and cloud available")
     func statusEnabled() {
         resetService()
+        assumeDeveloperBuild()
         SyncService.shared.isSyncEnabled = true
         SyncService.shared.isCloudAvailable = true
         SyncService.shared.lastSyncDate = nil
@@ -101,12 +136,22 @@ struct SyncServiceTests {
     @Test("syncStatusMessage shows last sync date after markSyncOccurred")
     func statusWithLastSync() {
         resetService()
+        assumeDeveloperBuild()
         SyncService.shared.isSyncEnabled = true
         SyncService.shared.isCloudAvailable = true
         SyncService.shared.markSyncOccurred()
 
         #expect(SyncService.shared.lastSyncDate != nil)
         #expect(SyncService.shared.syncStatusMessage.hasPrefix("Last synced:"))
+    }
+
+    @Test("syncStatusMessage shows dev-build required when not entitled")
+    func statusNotEntitled() {
+        resetService()
+        // No assumeDeveloperBuild — public build.
+        SyncService.shared.isSyncEnabled = true
+        SyncService.shared.isCloudAvailable = true
+        #expect(SyncService.shared.syncStatusMessage == "iCloud sync requires a developer build — download the public build from GitHub releases")
     }
 
     // MARK: - markSyncOccurred

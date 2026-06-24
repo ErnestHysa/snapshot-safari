@@ -25,6 +25,9 @@ let package = Package(
             ],
             resources: [
                 .process("Resources/Assets.xcassets")
+            ],
+            linkerSettings: [
+                .linkedFramework("OSAKit")
             ]
         ),
         .testTarget(

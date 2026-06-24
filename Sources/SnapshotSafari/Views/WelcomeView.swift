@@ -53,8 +53,8 @@ struct WelcomeView: View {
             VStack(spacing: 12) {
                 Button {
                     Task {
-                        await permissionsService.checkAutomationPermission()
-                        if !permissionsService.hasAutomationPermission {
+                        let granted = await permissionsService.checkAutomationPermission()
+                        if !granted {
                             permissionsService.openAutomationSettings()
                         }
                         dismiss()
