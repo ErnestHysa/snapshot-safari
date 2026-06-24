@@ -65,6 +65,7 @@ struct WelcomeView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .accessibilityHint("Checks Automation permission and opens System Settings if needed, then continues to the app.")
 
                 Button("Skip for now") {
                     dismiss()
@@ -72,6 +73,7 @@ struct WelcomeView: View {
                 .buttonStyle(.plain)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .accessibilityHint("Closes this welcome screen without setting up Automation permission.")
             }
             .padding(.horizontal, 40)
         }

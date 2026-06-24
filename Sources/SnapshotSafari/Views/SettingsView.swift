@@ -62,6 +62,7 @@ struct SettingsView: View {
                     .onChange(of: launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
                     }
+                    .accessibilityHint("Opens Snapshot Safari automatically when you log in to your Mac.")
             } header: {
                 Label("General", systemImage: "gearshape")
             }
@@ -79,6 +80,7 @@ struct SettingsView: View {
                     .onChange(of: autoSnapshotManager.isEnabled) { _, _ in
                         toggleAutoSnapshots()
                     }
+                    .accessibilityHint("When enabled, snapshots are automatically captured on a schedule.")
             } header: {
                 Label("Auto-Snapshots", systemImage: "clock.arrow.circlepath")
             }
@@ -102,6 +104,8 @@ struct SettingsView: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel("\(preset.label) interval")
+                        .accessibilityHint("Sets auto-snapshots to run every \(preset.label.lowercased()).")
                     }
 
                     Button {
@@ -118,6 +122,8 @@ struct SettingsView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Custom interval")
+                    .accessibilityHint("Set a custom interval in minutes for auto-snapshots.")
                 }
             }
         }
@@ -137,6 +143,7 @@ struct SettingsView: View {
                         showingSyncRestart = true
                     }
                 ))
+                .accessibilityHint("Syncs your snapshots across all Macs signed into the same iCloud account. Requires restart to take effect.")
             } header: {
                 Label("iCloud Sync", systemImage: "icloud")
             }
@@ -177,6 +184,8 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.radioGroup)
+                .accessibilityLabel("App theme")
+                .accessibilityHint("Choose between light, dark, or system appearance.")
             } header: {
                 Label("Appearance", systemImage: "paintpalette")
             }
@@ -202,12 +211,14 @@ struct SettingsView: View {
                 Button("Open Automation Settings") {
                     permissionsService.openAutomationSettings()
                 }
+                .accessibilityHint("Opens System Settings to the Automation privacy pane.")
 
                 Button("Check Permission Again") {
                     Task {
                         await permissionsService.checkAutomationPermission()
                     }
                 }
+                .accessibilityHint("Re-checks whether Snapshot Safari has Automation access to Safari.")
             } header: {
                 Label("Permissions", systemImage: "lock.shield")
             }
@@ -243,6 +254,7 @@ struct SettingsView: View {
                     }
                 }
                 .disabled(!sparkleChecker.canCheckForUpdates)
+                .accessibilityHint("Checks if a newer version of Snapshot Safari is available.")
             } header: {
                 Label("Updates", systemImage: "arrow.down.circle")
             }
@@ -252,10 +264,13 @@ struct SettingsView: View {
                     get: { SparkleUpdater.shared.automaticallyChecksForUpdates },
                     set: { SparkleUpdater.shared.automaticallyChecksForUpdates = $0 }
                 ))
+                .accessibilityHint("When enabled, Snapshot Safari periodically checks for new versions in the background.")
+
                 Toggle("Download automatically", isOn: Binding(
                     get: { SparkleUpdater.shared.automaticallyDownloadsUpdates },
                     set: { SparkleUpdater.shared.automaticallyDownloadsUpdates = $0 }
                 ))
+                .accessibilityHint("When enabled, updates are downloaded in the background and installed on next launch.")
             }
 
             Section {
@@ -287,6 +302,7 @@ struct SettingsView: View {
             Section {
                 Link("Snapshot Safari on GitHub", destination: URL(string: "https://github.com/ernest/snapshot-safari")!)
                     .font(.caption)
+                    .accessibilityHint("Opens the Snapshot Safari repository on GitHub in your browser.")
             }
         }
         .tabItem { Label("About", systemImage: "info.circle") }
@@ -321,6 +337,8 @@ struct SettingsView: View {
                 Button("Cancel") {
                     showingCustomInterval = false
                 }
+                .accessibilityLabel("Cancel custom interval")
+
                 Button("Set") {
                     if let minutes = Double(customIntervalText), minutes >= 5 {
                         autoSnapshotManager.interval = minutes * 60
@@ -330,6 +348,8 @@ struct SettingsView: View {
                     showingCustomInterval = false
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityLabel("Set custom interval")
+                .accessibilityHint("Applies the entered interval in minutes for auto-snapshots.")
             }
         }
         .padding()
