@@ -23,6 +23,7 @@ struct SettingsView: View {
     @State private var selectedTheme: AppTheme = .system
     @State private var customIntervalText = ""
     @State private var showingCustomInterval = false
+    @State private var sparkleChecker = SparkleUpdateChecker.shared
 
     @Environment(\.dismiss) private var dismiss
 
@@ -80,7 +81,8 @@ struct SettingsView: View {
                             showingCustomInterval = true
                         } label: {
                             HStack {
-                                Text("Custom…")
+                                Text(customIntervalLabel)
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 if autoSnapshotManager.isCustomInterval {
                                     Image(systemName: "checkmark")
@@ -151,20 +153,68 @@ struct SettingsView: View {
             }
             .padding()
 
-            // About
+            // Updates
             Form {
                 Section {
                     LabeledContent("Version", value: "1.0.0")
+                    LabeledContent("Build", value: "1")
+
+                    Button {
+                        sparkleChecker.checkForUpdates()
+                    } label: {
+                        HStack {
+                            Text("Check for Updates…")
+                            Spacer()
+                            if sparkleChecker.isChecking {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                        }
+                    }
+                    .disabled(!sparkleChecker.canCheckForUpdates)
+                } header: {
+                    Label("Updates", systemImage: "arrow.down.circle")
+                }
+
+                Section {
+                    Toggle("Check automatically", isOn: Binding(
+                        get: { SparkleUpdater.shared.automaticallyChecksForUpdates },
+                        set: { SparkleUpdater.shared.automaticallyChecksForUpdates = $0 }
+                    ))
+                    Toggle("Download automatically", isOn: Binding(
+                        get: { SparkleUpdater.shared.automaticallyDownloadsUpdates },
+                        set: { SparkleUpdater.shared.automaticallyDownloadsUpdates = $0 }
+                    ))
+                }
+
+                Section {
+                    Text("Snapshot Safari uses Sparkle to deliver updates. Your Mac will check for new versions when connected to the internet.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .tabItem {
+                Label("Updates", systemImage: "arrow.down.circle")
+            }
+            .padding()
+
+            // About
+            Form {
+                Section {
                     LabeledContent("Bundle ID", value: "com.ernest.snapshot-safari")
-                    LabeledContent("Build", value: "MVP")
                 } header: {
                     Label("About", systemImage: "info.circle")
                 }
 
                 Section {
-                    Text("Built with ❤️ using SwiftUI and SwiftData.")
+                    Text("Built with ❤️ using SwiftUI, SwiftData, and Sparkle.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                }
+
+                Section {
+                    Link("Snapshot Safari on GitHub", destination: URL(string: "https://github.com/ernest/snapshot-safari")!)
+                        .font(.caption)
                 }
             }
             .tabItem {
@@ -172,13 +222,21 @@ struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 480, height: 400)
+        .frame(width: 500, height: 460)
         .sheet(isPresented: $showingCustomInterval) {
             customIntervalSheet
         }
         .onAppear {
             loadSettings()
         }
+    }
+
+    private var customIntervalLabel: String {
+        if autoSnapshotManager.isCustomInterval {
+            let minutes = Int(autoSnapshotManager.interval / 60)
+            return "Custom (\(minutes) min)"
+        }
+        return "Custom…"
     }
 
     private var customIntervalSheet: some View {

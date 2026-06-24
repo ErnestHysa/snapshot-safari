@@ -17,7 +17,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>1.0.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
@@ -28,5 +28,9 @@
     <string>NSApplication</string>
     <key>NSSystemAdministrationUsageDescription</key>
     <string>Snapshot Safari needs to control Safari to save and restore your tabs.</string>
+    <key>SUPublicEDKey</key>
+    <string>YOUR_PUBLIC_ED25519_KEY_HERE</string>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/ernest/snapshot-safari/main/appcast.xml</string>
 </dict>
 </plist>

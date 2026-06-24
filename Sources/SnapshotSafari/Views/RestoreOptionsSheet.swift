@@ -1,9 +1,19 @@
 import SwiftUI
 
 struct RestoreOptionsSheet: View {
+    let title: String
     let onRestore: (SnapshotService.RestoreMode) -> Void
+
     @State private var selectedMode: SnapshotService.RestoreMode = .newWindow
     @Environment(\.dismiss) private var dismiss
+
+    init(
+        title: String = "Restore Snapshot",
+        onRestore: @escaping (SnapshotService.RestoreMode) -> Void
+    ) {
+        self.title = title
+        self.onRestore = onRestore
+    }
 
     var body: some View {
         VStack(spacing: 20) {
@@ -12,7 +22,7 @@ struct RestoreOptionsSheet: View {
                 .foregroundStyle(.tint)
                 .symbolRenderingMode(.hierarchical)
 
-            Text("Restore Snapshot")
+            Text(title)
                 .font(.title2.bold())
 
             Text("How would you like to open these tabs?")

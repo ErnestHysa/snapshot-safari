@@ -6,7 +6,8 @@ struct SnapshotDetailView: View {
 
     @State private var isEditingName = false
     @State private var editedName = ""
-    @State private var showingRestoreOptions = false
+    @State private var showingRestoreAllOptions = false
+    @State private var showingSelectedRestoreOptions = false
     @State private var selectedTabs: Set<UUID> = []
     @State private var searchText = ""
 
@@ -88,7 +89,7 @@ struct SnapshotDetailView: View {
             // Action bar
             HStack(spacing: 12) {
                 Button {
-                    showingRestoreOptions = true
+                    showingRestoreAllOptions = true
                 } label: {
                     Label("Restore All", systemImage: "arrow.up.circle")
                 }
@@ -97,10 +98,7 @@ struct SnapshotDetailView: View {
 
                 if !selectedTabs.isEmpty {
                     Button {
-                        let entries = snapshot.tabs.filter { selectedTabs.contains($0.id) }
-                        Task {
-                            await viewModel.restoreTabs(entries, mode: .newWindow)
-                        }
+                        showingSelectedRestoreOptions = true
                     } label: {
                         Label("Restore Selected (\(selectedTabs.count))", systemImage: "arrow.up.doc")
                     }
@@ -120,12 +118,23 @@ struct SnapshotDetailView: View {
             .padding()
             .background(.ultraThinMaterial)
         }
-        .sheet(isPresented: $showingRestoreOptions) {
+        .sheet(isPresented: $showingRestoreAllOptions) {
             RestoreOptionsSheet { mode in
                 Task {
                     await viewModel.restoreSnapshot(snapshot, mode: mode)
                 }
             }
+        }
+        .sheet(isPresented: $showingSelectedRestoreOptions) {
+            let entries = snapshot.tabs.filter { selectedTabs.contains($0.id) }
+            RestoreOptionsSheet(
+                title: "Restore \(entries.count) Selected Tab\(entries.count == 1 ? "" : "s")",
+                onRestore: { mode in
+                    Task {
+                        await viewModel.restoreTabs(entries, mode: mode)
+                    }
+                }
+            )
         }
     }
 }

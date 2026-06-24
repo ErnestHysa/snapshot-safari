@@ -6,6 +6,7 @@ struct SnapshotSafariApp: App {
     let container: ModelContainer
 
     @State private var selectedTheme: AppTheme = .system
+    @State private var updateChecker = SparkleUpdateChecker.shared
 
     var body: some Scene {
         WindowGroup {
@@ -34,6 +35,13 @@ struct SnapshotSafariApp: App {
                     NotificationCenter.default.post(name: .openSettings, object: nil)
                 }
                 .keyboardShortcut(",", modifiers: .command)
+            }
+
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    updateChecker.checkForUpdates()
+                }
+                .disabled(!updateChecker.canCheckForUpdates)
             }
         }
     }

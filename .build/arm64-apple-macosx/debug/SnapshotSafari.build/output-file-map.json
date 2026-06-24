@@ -51,6 +51,13 @@
     "swift-dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotService.swiftdeps",
     "diagnostics": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotService.dia"
   },
+  "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SparkleUpdater.swift": {
+    "dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.d",
+    "object": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.swift.o",
+    "swiftmodule": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater~partial.swiftmodule",
+    "swift-dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.swiftdeps",
+    "diagnostics": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.dia"
+  },
   "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/SnapshotSafariApp.swift": {
     "dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotSafariApp.d",
     "object": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotSafariApp.swift.o",

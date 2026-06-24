@@ -34,6 +34,20 @@
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari_SnapshotSafari.bundle/Info.plist"
         }
       ]
+    },
+    "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Sparkle.framework" : {
+      "inputs" : [
+        {
+          "kind" : "directory",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+        }
+      ],
+      "outputs" : [
+        {
+          "kind" : "directory",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Sparkle.framework"
+        }
+      ]
     }
   },
   "explicitTargetDependencyImportCheckingMode" : {
@@ -80,6 +94,10 @@
         {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SnapshotService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SparkleUpdater.swift"
         },
         {
           "kind" : "file",
@@ -138,6 +156,10 @@
           "name" : "<SnapshotSafari-arm64-apple-macosx-debug.module-resources>"
         },
         {
+          "kind" : "directory",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Sparkle.framework"
+        },
+        {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/sources"
         }
@@ -153,6 +175,7 @@
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/PermissionsService.swift.o",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SafariBridge.swift.o",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotService.swift.o",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.swift.o",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotSafariApp.swift.o",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/AutoNamer.swift.o",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotListViewModel.swift.o",
@@ -180,6 +203,12 @@
         "-DSWIFT_PACKAGE",
         "-DDEBUG",
         "-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE",
+        "-I",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
         "-module-cache-path",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
         "-parseable-output",
@@ -187,6 +216,8 @@
         "-entry-point-function-name",
         "-Xfrontend",
         "SnapshotSafari_main",
+        "-F",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug",
         "-swift-version",
         "6",
         "-plugin-path",
@@ -244,6 +275,10 @@
         {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.swift.o"
         },
         {
           "kind" : "file",
@@ -307,6 +342,7 @@
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/PermissionsService.swift",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SafariBridge.swift",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SnapshotService.swift",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SparkleUpdater.swift",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/SnapshotSafariApp.swift",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Utilities/AutoNamer.swift",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/ViewModels/SnapshotListViewModel.swift",
@@ -341,6 +377,10 @@
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules/SnapshotSafariTests.swiftmodule"
         },
         {
+          "kind" : "directory",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Sparkle.framework"
+        },
+        {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/sources"
         }
@@ -367,10 +407,18 @@
         "-DSWIFT_PACKAGE",
         "-DDEBUG",
         "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-I",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
         "-module-cache-path",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
         "-parseable-output",
         "-parse-as-library",
+        "-F",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug",
         "-emit-objc-header",
         "-emit-objc-header-path",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/include/SnapshotSafariPackageTests-Swift.h",
@@ -444,6 +492,10 @@
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari"
         },
         {
+          "kind" : "directory",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Sparkle.framework"
+        },
+        {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/sources"
         }
@@ -472,10 +524,18 @@
         "-DSWIFT_PACKAGE",
         "-DDEBUG",
         "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-I",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+        "-Xcc",
+        "-I",
+        "-Xcc",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
         "-module-cache-path",
         "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
         "-parseable-output",
         "-parse-as-library",
+        "-F",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug",
         "-swift-version",
         "6",
         "-plugin-path",
@@ -551,6 +611,7 @@
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/PermissionsService.swift",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SafariBridge.swift",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SnapshotService.swift",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SparkleUpdater.swift",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/SnapshotSafariApp.swift",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Utilities/AutoNamer.swift",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/ViewModels/SnapshotListViewModel.swift",
@@ -578,6 +639,12 @@
       "-DSWIFT_PACKAGE",
       "-DDEBUG",
       "-DSWIFT_MODULE_RESOURCE_BUNDLE_AVAILABLE",
+      "-I",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+      "-Xcc",
+      "-I",
+      "-Xcc",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
       "-module-cache-path",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
       "-parseable-output",
@@ -585,6 +652,8 @@
       "-entry-point-function-name",
       "-Xfrontend",
       "SnapshotSafari_main",
+      "-F",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug",
       "-swift-version",
       "6",
       "-plugin-path",
@@ -640,10 +709,18 @@
       "-DSWIFT_PACKAGE",
       "-DDEBUG",
       "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-I",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+      "-Xcc",
+      "-I",
+      "-Xcc",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
       "-module-cache-path",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
       "-parseable-output",
       "-parse-as-library",
+      "-F",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug",
       "-emit-objc-header",
       "-emit-objc-header-path",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/include/SnapshotSafariPackageTests-Swift.h",
@@ -702,10 +779,18 @@
       "-DSWIFT_PACKAGE",
       "-DDEBUG",
       "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-I",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
+      "-Xcc",
+      "-I",
+      "-Xcc",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64",
       "-module-cache-path",
       "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
       "-parseable-output",
       "-parse-as-library",
+      "-F",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug",
       "-swift-version",
       "6",
       "-plugin-path",
@@ -739,14 +824,16 @@
   },
   "targetDependencyMap" : {
     "SnapshotSafari" : [
-
+      "Sparkle"
     ],
     "SnapshotSafariPackageTests" : [
       "SnapshotSafariTests",
-      "SnapshotSafari"
+      "SnapshotSafari",
+      "Sparkle"
     ],
     "SnapshotSafariTests" : [
-      "SnapshotSafari"
+      "SnapshotSafari",
+      "Sparkle"
     ]
   },
   "testDiscoveryCommands" : {
@@ -819,6 +906,10 @@
         {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SnapshotService.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Sources/SnapshotSafari/Services/SparkleUpdater.swift"
         },
         {
           "kind" : "file",
@@ -940,6 +1031,10 @@
         },
         {
           "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.swift.o"
+        },
+        {
+          "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/TabEntry.swift.o"
         },
         {
@@ -1037,6 +1132,10 @@
         {
           "kind" : "file",
           "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SparkleUpdater.swift.o"
         },
         {
           "kind" : "file",
