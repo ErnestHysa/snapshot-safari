@@ -43,5 +43,9 @@ final class Snapshot {
         self.isAutoSnapshot = isAutoSnapshot
         self.createdAt = Date()
         self.updatedAt = Date()
+        // Set the inverse relationship so SwiftData can validate it
+        for tab in tabs {
+            tab.snapshot = self
+        }
     }
 }

@@ -1,6 +1,10 @@
 {
   "builtTestProducts" : [
-
+    {
+      "binaryPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.xctest/Contents/MacOS/SnapshotSafariPackageTests",
+      "packagePath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari",
+      "productName" : "SnapshotSafariPackageTests"
+    }
   ],
   "copyCommands" : {
     "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari_SnapshotSafari.bundle/Assets.xcassets" : {
@@ -318,6 +322,215 @@
       ],
       "tempsPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build",
       "wholeModuleOptimization" : false
+    },
+    "C.SnapshotSafariPackageTests-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/sources",
+      "importPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules/SnapshotSafariTests.swiftmodule"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "SnapshotSafariPackageTests",
+      "moduleOutputPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules/SnapshotSafariPackageTests.swiftmodule",
+      "objects" : [
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx15.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-emit-objc-header",
+        "-emit-objc-header-path",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/include/SnapshotSafariPackageTests-Swift.h",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "snapshot_safari"
+      ],
+      "outputFileMapPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules/SnapshotSafariPackageTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift"
+      ],
+      "tempsPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build",
+      "wholeModuleOptimization" : false
+    },
+    "C.SnapshotSafariTests-arm64-apple-macosx-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/sources",
+      "importPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/AutoNamerTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SafariBridgeTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SnapshotServiceTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/sources"
+        }
+      ],
+      "isLibrary" : true,
+      "moduleName" : "SnapshotSafariTests",
+      "moduleOutputPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules/SnapshotSafariTests.swiftmodule",
+      "objects" : [
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/AutoNamerTests.swift.o",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/SafariBridgeTests.swift.o",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/SnapshotServiceTests.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx15.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-Xfrontend",
+        "-enable-cross-import-overlays",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-parse-as-library",
+        "-swift-version",
+        "6",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "snapshot_safari"
+      ],
+      "outputFileMapPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/AutoNamerTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/SafariBridgeTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/SnapshotServiceTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules/SnapshotSafariTests.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/AutoNamerTests.swift",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SafariBridgeTests.swift",
+        "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SnapshotServiceTests.swift"
+      ],
+      "tempsPath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build",
+      "wholeModuleOptimization" : false
     }
   },
   "swiftFrontendCommands" : {
@@ -401,18 +614,156 @@
       "snapshot_safari",
       "-driver-use-frontend-path",
       "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "SnapshotSafariPackageTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SnapshotSafariPackageTests",
+      "-package-name",
+      "snapshot_safari",
+      "-c",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift",
+      "-I",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx15.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-emit-objc-header",
+      "-emit-objc-header-path",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/include/SnapshotSafariPackageTests-Swift.h",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "snapshot_safari",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ],
+    "SnapshotSafariTests" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "SnapshotSafariTests",
+      "-package-name",
+      "snapshot_safari",
+      "-c",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/AutoNamerTests.swift",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SafariBridgeTests.swift",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SnapshotServiceTests.swift",
+      "-I",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx15.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-index-store-path",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-Xfrontend",
+      "-enable-cross-import-overlays",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-parse-as-library",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "snapshot_safari",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
     ]
   },
   "targetDependencyMap" : {
     "SnapshotSafari" : [
 
+    ],
+    "SnapshotSafariPackageTests" : [
+      "SnapshotSafariTests",
+      "SnapshotSafari"
+    ],
+    "SnapshotSafariTests" : [
+      "SnapshotSafari"
     ]
   },
   "testDiscoveryCommands" : {
 
   },
   "testEntryPointCommands" : {
+    "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift" : {
+      "inputs" : [
 
+      ],
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift"
+        }
+      ]
+    }
   },
   "traitConfiguration" : {
     "default" : {
@@ -605,6 +956,144 @@
         }
       ],
       "outputFilePath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.product/Objects.LinkFileList"
+    },
+    "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/sources"
+    },
+    "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/AutoNamer.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/AutoSnapshotManager.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/FaviconService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/PermissionsService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/RestoreOptionsSheet.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SafariBridge.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SettingsView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/Snapshot.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotCard.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotDetailView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotListView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotListViewModel.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotSafariApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/SnapshotService.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/TabEntry.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/TabRow.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/WelcomeView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafari.build/resource_bundle_accessor.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/AutoNamerTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/SafariBridgeTests.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/SnapshotServiceTests.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.product/Objects.LinkFileList"
+    },
+    "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/AutoNamerTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SafariBridgeTests.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/Tests/SnapshotSafariTests/SnapshotServiceTests.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariTests.build/sources"
     },
     "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
       "alwaysOutOfDate" : true,

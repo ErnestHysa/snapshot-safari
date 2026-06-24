@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/primary.swiftdeps"
+  },
+  "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.derived/runner.swift": {
+    "dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.d",
+    "object": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.swift.o",
+    "swiftmodule": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner~partial.swiftmodule",
+    "swift-dependencies": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.swiftdeps",
+    "diagnostics": "/Users/ernest/Desktop/DEVPROJECTS/Snapshot-Safari/.build/arm64-apple-macosx/debug/SnapshotSafariPackageTests.build/runner.dia"
+  }
+}
