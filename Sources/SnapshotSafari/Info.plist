@@ -29,7 +29,7 @@
     <key>NSSystemAdministrationUsageDescription</key>
     <string>Snapshot Safari needs to control Safari to save and restore your tabs.</string>
     <key>SUPublicEDKey</key>
-    <string>YOUR_PUBLIC_ED25519_KEY_HERE</string>
+    <string>CxNyLH7T1UP6yaqtCpHSQVI5yDYCxwOSVehla2LA1jg=</string>
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/ernest/snapshot-safari/main/appcast.xml</string>
 </dict>
