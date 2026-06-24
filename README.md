@@ -63,7 +63,7 @@ Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
 
 ```bash
 # Clone the repository
-git clone https://github.com/ernest/snapshot-safari.git
+git clone https://github.com/ErnestHysa/snapshot-safari.git
 cd snapshot-safari
 
 # Build and run
