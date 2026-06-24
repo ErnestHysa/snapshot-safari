@@ -56,28 +56,40 @@ struct SnapshotSafariApp: App {
 
         // Configure for CloudKit if the user has enabled it.
         let isCloudSyncEnabled = SyncService.shared.isSyncEnabled
-        let config: ModelConfiguration
+        let localConfig = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            allowsSave: true
+        )
 
         if isCloudSyncEnabled {
-            config = ModelConfiguration(
+            let cloudConfig = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: false,
                 allowsSave: true,
                 cloudKitDatabase: .automatic
             )
+            // Try the cloud config first; fall back to local if CloudKit isn't available.
+            if let container = try? ModelContainer(for: schema, configurations: [cloudConfig]) {
+                self.container = container
+                SyncService.shared.isCloudAvailable = true
+            } else {
+                // CloudKit unavailable (not signed into iCloud, no container, etc.)
+                self.container = (try? ModelContainer(for: schema, configurations: [localConfig]))
+                    ?? Self.fallbackContainer
+                SyncService.shared.isCloudAvailable = false
+            }
         } else {
-            config = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                allowsSave: true
-            )
+            self.container = (try? ModelContainer(for: schema, configurations: [localConfig]))
+                ?? Self.fallbackContainer
         }
+    }
 
-        do {
-            container = try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
+    /// A last-resort in-memory container if local persistence also fails.
+    private static var fallbackContainer: ModelContainer {
+        let schema = Schema([Snapshot.self, TabEntry.self])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        return try! ModelContainer(for: schema, configurations: [config])
     }
 
     private func loadTheme() {
