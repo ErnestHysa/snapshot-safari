@@ -6,6 +6,34 @@
         <description>Most recent updates to Snapshot Safari</description>
         <language>en</language>
         <item>
+            <title>Snapshot Safari 1.0.1</title>
+            <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.1/SnapshotSafari-1.0.1-2.dmg</link>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            <pubDate>Thu, 25 Jun 2026 00:00:00 +0000</pubDate>
+            <description><![CDATA[
+                <h2>Snapshot Safari 1.0.1</h2>
+                <h3>Fixes</h3>
+                <ul>
+                    <li><strong>Automation permission now registers correctly.</strong> Switched Safari bridge to in-process <code>OSAScript</code> execution so the TCC prompt lands on Snapshot Safari's bundle id (<code>com.ernest.snapshot-safari</code>) instead of <code>com.apple.osascript</code>. The app now appears in System Settings → Privacy & Security → Automation with a working toggle.</li>
+                </ul>
+                <h3>Changes</h3>
+                <ul>
+                    <li>Settings panel redesigned with a sidebar layout and native macOS window chrome (red close, yellow minimize, green zoom). Closes with ⌘W and the red traffic-light button instead of ESC-only.</li>
+                    <li>Settings styling now uses the same material backgrounds, SF Symbol hierarchy, and section header vocabulary as the rest of the app.</li>
+                    <li>About tab now reads the version and build from the bundle's Info.plist so they stay accurate.</li>
+                </ul>
+                <h3>Notes</h3>
+                <p>This build is still signed ad-hoc. First launch will require a one-click bypass of the Gatekeeper warning ("developer cannot be verified"). After that, the app launches normally.</p>
+            ]]></description>
+            <enclosure
+                url="https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.1/SnapshotSafari-1.0.1-2.dmg"
+                length="1365802"
+                type="application/octet-stream"
+                sparkle:edSignature="52vB7wr4Q3jUhXd5/Yxc0PUqBmYmLFiTk6pu7q7fvCFpTr4x4akdJqK/8cKYH6jBnGVlKjtNhHWEomuU2s8oDQ=="
+                sparkle:os="macos"/>
+        </item>
+        <item>
             <title>Snapshot Safari 1.0.0</title>
             <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.0/SnapshotSafari-1.0.0-1.dmg</link>
             <sparkle:version>1</sparkle:version>

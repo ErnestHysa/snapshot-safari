@@ -317,8 +317,8 @@ struct SettingsView: View {
     private var updatesTab: some View {
         SettingsPane(title: SettingsTab.updates.rawValue, subtitle: "Auto-update delivery via Sparkle") {
             Section {
-                LabeledContent("Version", value: "1.0.0")
-                LabeledContent("Build", value: "1")
+                LabeledContent("Version", value: appVersion)
+                LabeledContent("Build", value: appBuild)
 
                 Button {
                     sparkleChecker.checkForUpdates()
@@ -444,6 +444,14 @@ struct SettingsView: View {
             return "Custom (\(minutes) min)"
         }
         return "Custom…"
+    }
+
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+
+    private var appBuild: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
     }
 
     private func loadSettings() {
