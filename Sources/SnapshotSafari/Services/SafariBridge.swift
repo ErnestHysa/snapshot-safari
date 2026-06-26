@@ -11,6 +11,7 @@ enum SafariBridgeError: LocalizedError {
     case scriptError(String)
     case invalidOutput
     case noTabsFound
+    case appleEventTimeout
 
     var errorDescription: String? {
         switch self {
@@ -24,6 +25,8 @@ enum SafariBridgeError: LocalizedError {
             return "Could not parse Safari tab data."
         case .noTabsFound:
             return "No open tabs found in Safari."
+        case .appleEventTimeout:
+            return "Safari didn't respond in time. It may be busy or unresponsive — try again."
         }
     }
 }
@@ -219,10 +222,16 @@ final class SafariBridge {
         }
     }
 
+    /// Timeout for AppleEvent delivery to Safari. If Safari is hung
+    /// or unresponsive, the main-thread `executeAndReturnError` would
+    /// otherwise beachball the UI indefinitely.
+    private static let appleEventTimeoutSeconds: TimeInterval = 15
+
     // MARK: - In-process Script Execution
 
     /// Executes a JXA script in-process using `OSAScript`. Returns the script's
-    /// string result. Throws `OSAScriptError` on script failure.
+    /// string result. Throws `OSAScriptError` on script failure,
+    /// `SafariBridgeError.appleEventTimeout` if Safari doesn't respond in time.
     ///
     /// Running in-process (vs spawning `/usr/bin/osascript`) means the AppleEvent
     /// sender is OUR bundle id — so when the user is prompted for permission,
@@ -231,31 +240,41 @@ final class SafariBridge {
     /// System Settings → Privacy & Security → Automation.
     ///
     /// Executes on the main actor because AppleEvents require a run loop
-    /// to process replies. Running on a background queue caused timeouts
-    /// when Safari was not the frontmost app.
+    /// to process replies. Wrapped in a `withTimeout` so the caller gets
+    /// an error (rather than hanging indefinitely) if Safari is hung.
+    ///
+    /// NOTE: `MainActor.run` runs the closure synchronously on the main
+    /// thread. When Safari is hung, the main thread remains blocked inside
+    /// `executeAndReturnError` for the OS-level AppleEvent timeout (~120 s).
+    /// The `withTimeout` gives the calling task an early error, but the UI
+    /// may still beachball until the AppleEvent layer gives up.
     private func runScript(_ source: String) async throws -> String {
-        guard let language = OSALanguage(forName: "JavaScript") else {
-            throw OSAScriptError(
-                info: ["OSAScriptErrorMessage": "JavaScript OSA language unavailable"],
-                message: "JavaScript OSA language unavailable"
-            )
-        }
+        // NSAppleEventDescriptor / NSDictionary / OSALanguage are not Sendable,
+        // so the `withTimeout` closure only captures Sendable values (String).
+        // Everything non-Sendable is created inside `MainActor.run`.
+        let result: (stringValue: String?, errorCode: Int, errorMessage: String)
+        do {
+            result = try await withTimeout(seconds: Self.appleEventTimeoutSeconds) {
+                await MainActor.run { () -> (stringValue: String?, errorCode: Int, errorMessage: String) in
+                    guard let language = OSALanguage(forName: "JavaScript") else {
+                        return (nil, -1, "JavaScript OSA language unavailable")
+                    }
+                    let script = OSAScript(source: source, language: language)
+                    var error: NSDictionary?
+                    let outcome = script.executeAndReturnError(&error)
 
-        // AppleEvents need a run loop; execute on the main actor.
-        // Extract only Sendable types (String?, Int, String) from the
-        // closure since NSAppleEventDescriptor / NSDictionary are not Sendable.
-        let result = await MainActor.run { () -> (stringValue: String?, errorCode: Int, errorMessage: String) in
-            let script = OSAScript(source: source, language: language)
-            var error: NSDictionary?
-            let outcome = script.executeAndReturnError(&error)
+                    if let error {
+                        let message = Self.describeOSAError(error)
+                        let code = (error[OSAScriptErrorNumberKey] as? Int) ?? 0
+                        return (nil, code, message)
+                    }
 
-            if let error {
-                let message = Self.describeOSAError(error)
-                let code = (error[OSAScriptErrorNumberKey] as? Int) ?? 0
-                return (nil, code, message)
+                    return (outcome?.stringValue, 0, "")
+                }
             }
-
-            return (outcome?.stringValue, 0, "")
+        } catch is TimeoutError {
+            logger.warning("AppleEvent timed out after \(Self.appleEventTimeoutSeconds)s — Safari may be hung")
+            throw SafariBridgeError.appleEventTimeout
         }
 
         if result.errorCode != 0 {
@@ -314,5 +333,37 @@ struct OSAScriptError: Error, @unchecked Sendable {
         if let n = info[OSAScriptErrorNumberKey] as? Int { return n }
         if let n = info["errAEEventNumber"] as? Int { return n }
         return 0
+    }
+}
+
+// MARK: - Timeout Helper
+
+/// Thrown when an async operation exceeds its deadline.
+private struct TimeoutError: Error {}
+
+/// Races `operation` against a timeout. If `operation` completes first,
+/// its result is returned. If the timeout fires first, `TimeoutError`
+/// is thrown and the operation task is cancelled.
+///
+/// Uses `TaskGroup` so the timeout runs on a separate cooperative
+/// task — it doesn't need the main thread, so it fires even if
+/// `operation` is blocking the main actor.
+private func withTimeout<T: Sendable>(
+    seconds: TimeInterval,
+    operation: @escaping @Sendable () async throws -> T
+) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask { try await operation() }
+        group.addTask {
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            throw TimeoutError()
+        }
+        guard let result = try await group.next() else {
+            // Both tasks completed without producing a value — should never
+            // happen given our two tasks, but treat as timeout defensively.
+            throw TimeoutError()
+        }
+        group.cancelAll()
+        return result
     }
 }
