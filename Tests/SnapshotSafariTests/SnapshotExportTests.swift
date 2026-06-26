@@ -155,7 +155,8 @@ struct SnapshotServiceExportTests {
 
     @Test("from creates export from Snapshot model objects")
     func createFromSnapshots() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
 
         let tabs = [
             TabEntry(url: "https://apple.com", title: "Apple", windowIndex: 0, index: 0),
@@ -173,20 +174,17 @@ struct SnapshotServiceExportTests {
         #expect(export.snapshots[0].name == "Test Snapshot")
         #expect(export.snapshots[0].isAutoSnapshot == true)
         #expect(export.snapshots[0].tabs.count == 2)
-        #expect(export.snapshots[0].tabs[0].url == "https://apple.com")
-        #expect(export.snapshots[0].tabs[1].url == "https://github.com")
+        // @Relationship arrays are not order-stable after save; sort by URL
+        let sortedTabs = export.snapshots[0].tabs.sorted { $0.url < $1.url }
+        #expect(sortedTabs[0].url == "https://apple.com")
+        #expect(sortedTabs[1].url == "https://github.com")
     }
 
-    private func makeContext() throws -> ModelContext {
-        let schema = Schema([Snapshot.self, TabEntry.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        let container = try ModelContainer(for: schema, configurations: [config])
-        return container.mainContext
-    }
 
     @Test("exportSnapshotToJSON produces valid data")
     func exportServiceJSON() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
         let service = SnapshotService(modelContext: context)
 
         let tabs = [
@@ -208,7 +206,8 @@ struct SnapshotServiceExportTests {
 
     @Test("exportMultipleSnapshotsToJSON exports all snapshots")
     func exportMultipleService() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
         let service = SnapshotService(modelContext: context)
 
         let s1 = Snapshot(name: "First", tabs: [
@@ -231,7 +230,8 @@ struct SnapshotServiceExportTests {
 
     @Test("importSnapshots imports and creates SwiftData objects")
     func importService() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
         let service = SnapshotService(modelContext: context)
 
         // Create export data
@@ -268,7 +268,8 @@ struct SnapshotServiceExportTests {
 
     @Test("import multiple snapshots at once")
     func importMultiple() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
         let service = SnapshotService(modelContext: context)
 
         let snapshots = (1...3).map { i in
@@ -297,7 +298,8 @@ struct SnapshotServiceExportTests {
 
     @Test("import rejects unsupported version")
     func unsupportedVersion() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
         let service = SnapshotService(modelContext: context)
 
         let exported = SnapshotExport.ExportedSnapshot(
@@ -322,7 +324,8 @@ struct SnapshotServiceExportTests {
 
     @Test("export then import roundtrips correctly")
     func exportImportRoundtrip() throws {
-        let context = try makeContext()
+        let container = createTestContainer()
+        let context = container.mainContext
         let service = SnapshotService(modelContext: context)
 
         // Create a snapshot
@@ -338,7 +341,8 @@ struct SnapshotServiceExportTests {
         let data = try service.exportSnapshotToJSON(snapshot)
 
         // Import into a fresh context
-        let freshContext = try makeContext()
+        let freshContainer = createTestContainer()
+        let freshContext = freshContainer.mainContext
         let freshService = SnapshotService(modelContext: freshContext)
         let count = try freshService.importSnapshots(from: data)
 
@@ -348,9 +352,13 @@ struct SnapshotServiceExportTests {
         #expect(imported[0].name == "Roundtrip Test")
         #expect(imported[0].isAutoSnapshot == true)
         #expect(imported[0].tabs.count == 2)
-        #expect(imported[0].tabs[0].url == "https://apple.com")
-        #expect(imported[0].tabs[1].url == "https://github.com")
-        #expect(imported[0].tabs[1].windowIndex == 1)
-        #expect(imported[0].tabs[1].index == 2)
+        // @Relationship arrays are not order-stable after save/fetch; sort by URL
+        let importedTabs = imported[0].tabs.sorted { $0.url < $1.url }
+        #expect(importedTabs[0].url == "https://apple.com")
+        #expect(importedTabs[0].windowIndex == 0)
+        #expect(importedTabs[0].index == 0)
+        #expect(importedTabs[1].url == "https://github.com")
+        #expect(importedTabs[1].windowIndex == 1)
+        #expect(importedTabs[1].index == 2)
     }
 }
