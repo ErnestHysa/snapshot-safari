@@ -23,7 +23,7 @@ final class SnapshotService {
 
         let tabEntries = tabs.map { tab in
             TabEntry(
-                url: tab.url,
+                url: tab.url ?? "about:blank",
                 title: tab.title,
                 windowIndex: tab.windowIndex,
                 index: tab.index

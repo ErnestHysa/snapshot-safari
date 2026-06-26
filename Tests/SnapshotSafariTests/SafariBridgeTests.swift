@@ -6,6 +6,36 @@ import Foundation
 
 struct SafariTabTests {
 
+    @Test("SafariTab handles null URL (Safari internal pages)")
+    func nullURL() throws {
+        let json = """
+        {"url":null,"title":"Start Page","windowIndex":0,"index":0}
+        """
+        let data = try #require(json.data(using: .utf8))
+        let tab = try JSONDecoder().decode(SafariTab.self, from: data)
+        #expect(tab.url == nil)
+        #expect(tab.title == "Start Page")
+        #expect(tab.windowIndex == 0)
+        #expect(tab.index == 0)
+    }
+
+    @Test("SafariTab JSON array handles mixed null and real URLs")
+    func mixedNullURLs() throws {
+        let json = """
+        [
+            {"url":"https://apple.com","title":"Apple","windowIndex":0,"index":0},
+            {"url":null,"title":"Start Page","windowIndex":0,"index":1},
+            {"url":"https://github.com","title":"GitHub","windowIndex":0,"index":2}
+        ]
+        """
+        let data = try #require(json.data(using: .utf8))
+        let tabs = try JSONDecoder().decode([SafariTab].self, from: data)
+        #expect(tabs.count == 3)
+        #expect(tabs[0].url == "https://apple.com")
+        #expect(tabs[1].url == nil)
+        #expect(tabs[2].url == "https://github.com")
+    }
+
     @Test("SafariTab can be created with all properties")
     func createSafariTab() {
         let tab = SafariTab(url: "https://example.com", title: "Example", windowIndex: 0, index: 0)

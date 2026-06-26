@@ -31,12 +31,15 @@ enum SafariBridgeError: LocalizedError {
 // MARK: - Tab Data
 
 struct SafariTab: Codable, Identifiable, Equatable {
-    let url: String
+    /// Safari can return `null` for tabs that have no real URL (e.g. the
+    /// start page, internal pages). We model this as an optional String
+    /// so JSONDecoder doesn't throw on the entire response.
+    let url: String?
     let title: String
     let windowIndex: Int
     let index: Int
 
-    var id: String { "\(windowIndex)-\(index)-\(url)" }
+    var id: String { "\(windowIndex)-\(index)-\(url ?? "null")" }
 
     static func == (lhs: SafariTab, rhs: SafariTab) -> Bool {
         lhs.id == rhs.id
@@ -174,12 +177,29 @@ final class SafariBridge {
     }
 
     /// Opens tabs in Safari using the selected mode.
+    /// Tabs with `nil` URLs are silently dropped — Safari can't open
+    /// a tab without a URL, and these represent internal pages (start
+    /// page, etc.) that have no address to restore.
     func restoreTabs(_ tabs: [SafariTab], mode: RestoreMode) async throws {
         guard isSafariRunning else {
             throw SafariBridgeError.safariNotRunning
         }
 
-        let jsonData = try JSONEncoder().encode(tabs)
+        // Filter out tabs with nil URLs (Safari internal pages)
+        // and default to "about:blank" for safety — Safari handles this.
+        let safeTabs = tabs.compactMap { tab -> SafariTab? in
+            guard tab.url != nil else {
+                logger.debug("Skipping tab with nil URL: \(tab.title)")
+                return nil
+            }
+            return tab
+        }
+
+        guard !safeTabs.isEmpty else {
+            throw SafariBridgeError.noTabsFound
+        }
+
+        let jsonData = try JSONEncoder().encode(safeTabs)
         let jsonString = String(data: jsonData, encoding: .utf8)?
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "'", with: "\\'") ?? "[]"
