@@ -222,10 +222,12 @@ final class SafariBridge {
         }
     }
 
-    /// Timeout for AppleEvent delivery to Safari. If Safari is hung
-    /// or unresponsive, the main-thread `executeAndReturnError` would
-    /// otherwise beachball the UI indefinitely.
-    private static let appleEventTimeoutSeconds: TimeInterval = 15
+    /// Timeout for AppleEvent delivery to Safari. The script runs on a
+    /// GCD background thread so the main actor stays responsive. If
+    /// Safari doesn't reply within this window the continuation is
+    /// resumed with `.appleEventTimeout` — the blocked GCD thread is
+    /// abandoned (it will finish on its own but its result is discarded).
+    private static let appleEventTimeoutSeconds: TimeInterval = 30
 
     // MARK: - In-process Script Execution
 
@@ -239,57 +241,74 @@ final class SafariBridge {
     /// is recorded against `com.ernest.snapshot-safari`, putting our app in
     /// System Settings → Privacy & Security → Automation.
     ///
-    /// Executes on the main actor because AppleEvents require a run loop
-    /// to process replies. Wrapped in a `withTimeout` so the caller gets
-    /// an error (rather than hanging indefinitely) if Safari is hung.
-    ///
-    /// NOTE: `MainActor.run` runs the closure synchronously on the main
-    /// thread. When Safari is hung, the main thread remains blocked inside
-    /// `executeAndReturnError` for the OS-level AppleEvent timeout (~120 s).
-    /// The `withTimeout` gives the calling task an early error, but the UI
-    /// may still beachball until the AppleEvent layer gives up.
+    /// The blocking `executeAndReturnError` call runs on a GCD background
+    /// queue so the main actor is never blocked. A concurrent timeout
+    /// resumes the continuation if Safari doesn't reply in time; the
+    /// abandoned GCD thread eventually completes harmlessly.
     private func runScript(_ source: String) async throws -> String {
-        // NSAppleEventDescriptor / NSDictionary / OSALanguage are not Sendable,
-        // so the `withTimeout` closure only captures Sendable values (String).
-        // Everything non-Sendable is created inside `MainActor.run`.
-        let result: (stringValue: String?, errorCode: Int, errorMessage: String)
-        do {
-            result = try await withTimeout(seconds: Self.appleEventTimeoutSeconds) {
-                await MainActor.run { () -> (stringValue: String?, errorCode: Int, errorMessage: String) in
-                    guard let language = OSALanguage(forName: "JavaScript") else {
-                        return (nil, -1, "JavaScript OSA language unavailable")
-                    }
-                    let script = OSAScript(source: source, language: language)
-                    var error: NSDictionary?
-                    let outcome = script.executeAndReturnError(&error)
+        try await withCheckedThrowingContinuation { continuation in
+            let lock = NSLock()
+            var hasResumed = false
 
-                    if let error {
-                        let message = Self.describeOSAError(error)
-                        let code = (error[OSAScriptErrorNumberKey] as? Int) ?? 0
-                        return (nil, code, message)
+            // Execute the blocking AppleScript on a background GCD queue
+            // so the main actor stays responsive for UI updates.
+            DispatchQueue.global().async {
+                guard let language = OSALanguage(forName: "JavaScript") else {
+                    lock.lock()
+                    if !hasResumed {
+                        hasResumed = true
+                        lock.unlock()
+                        continuation.resume(
+                            throwing: SafariBridgeError.scriptError("JavaScript OSA language unavailable")
+                        )
+                    } else {
+                        lock.unlock()
                     }
+                    return
+                }
 
-                    return (outcome?.stringValue, 0, "")
+                let script = OSAScript(source: source, language: language)
+                var error: NSDictionary?
+                let outcome = script.executeAndReturnError(&error)
+
+                lock.lock()
+                guard !hasResumed else {
+                    // Timeout already fired — discard late result
+                    lock.unlock()
+                    return
+                }
+                hasResumed = true
+                lock.unlock()
+
+                if let error {
+                    let message = Self.describeOSAError(error)
+                    let code = (error[OSAScriptErrorNumberKey] as? Int) ?? 0
+                    continuation.resume(throwing: OSAScriptError(
+                        info: [OSAScriptErrorNumberKey: code, OSAScriptErrorMessageKey: message],
+                        message: message
+                    ))
+                } else {
+                    continuation.resume(returning: outcome?.stringValue ?? "")
                 }
             }
-        } catch is TimeoutError {
-            logger.warning("AppleEvent timed out after \(Self.appleEventTimeoutSeconds)s — Safari may be hung")
-            throw SafariBridgeError.appleEventTimeout
-        }
 
-        if result.errorCode != 0 {
-            throw OSAScriptError(
-                info: [
-                    OSAScriptErrorNumberKey: result.errorCode,
-                    OSAScriptErrorMessageKey: result.errorMessage
-                ],
-                message: result.errorMessage
-            )
+            // Timeout guard: resume the continuation with an error if
+            // the script hasn't completed in time. The GCD thread above
+            // may still be blocked in executeAndReturnError — we abandon
+            // it (it will finish on its own, the lock prevents a crash).
+            let logger = self.logger
+            DispatchQueue.global().asyncAfter(deadline: .now() + Self.appleEventTimeoutSeconds) {
+                lock.lock()
+                guard !hasResumed else {
+                    lock.unlock()
+                    return
+                }
+                hasResumed = true
+                lock.unlock()
+                logger.warning("AppleEvent timed out after \(Self.appleEventTimeoutSeconds)s — Safari may be hung")
+                continuation.resume(throwing: SafariBridgeError.appleEventTimeout)
+            }
         }
-
-        // Some scripts (notably `restoreTabs`) don't return a value but
-        // still succeed. Treat nil-string as success.
-        return result.stringValue ?? ""
     }
 
     /// Wraps a non-descript OSA error info dictionary so call sites can pattern-match.
@@ -336,34 +355,3 @@ struct OSAScriptError: Error, @unchecked Sendable {
     }
 }
 
-// MARK: - Timeout Helper
-
-/// Thrown when an async operation exceeds its deadline.
-private struct TimeoutError: Error {}
-
-/// Races `operation` against a timeout. If `operation` completes first,
-/// its result is returned. If the timeout fires first, `TimeoutError`
-/// is thrown and the operation task is cancelled.
-///
-/// Uses `TaskGroup` so the timeout runs on a separate cooperative
-/// task — it doesn't need the main thread, so it fires even if
-/// `operation` is blocking the main actor.
-private func withTimeout<T: Sendable>(
-    seconds: TimeInterval,
-    operation: @escaping @Sendable () async throws -> T
-) async throws -> T {
-    try await withThrowingTaskGroup(of: T.self) { group in
-        group.addTask { try await operation() }
-        group.addTask {
-            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            throw TimeoutError()
-        }
-        guard let result = try await group.next() else {
-            // Both tasks completed without producing a value — should never
-            // happen given our two tasks, but treat as timeout defensively.
-            throw TimeoutError()
-        }
-        group.cancelAll()
-        return result
-    }
-}
