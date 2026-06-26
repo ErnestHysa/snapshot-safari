@@ -65,7 +65,13 @@ final class PermissionsService {
         }
         """
 
-        let result = OSAScript(source: script, language: OSALanguage(forName: "JavaScript")!)
+        guard let language = OSALanguage(forName: "JavaScript") else {
+            logger.error("JavaScript OSA language unavailable — treating as not granted")
+            hasAutomationPermission = false
+            return false
+        }
+
+        let result = OSAScript(source: script, language: language)
         var error: NSDictionary?
         let outcome = result.executeAndReturnError(&error)
         let outcomeStr = String(describing: outcome)
