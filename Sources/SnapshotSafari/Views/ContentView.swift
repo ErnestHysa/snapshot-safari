@@ -26,12 +26,12 @@ struct ContentView: View {
                 }
                 .toolbar {
                     ToolbarItemGroup {
-                        if !viewModel.trashedSnapshots.isEmpty {
-                            TrashButton(count: viewModel.trashedSnapshots.count) {
-                                showingTrash = true
-                            }
-                            .accessibilityLabel("Show recently deleted snapshots")
+                        TrashButton(count: viewModel.trashedSnapshots.count) {
+                            showingTrash = true
                         }
+                        .disabled(viewModel.trashedSnapshots.isEmpty)
+                        .opacity(viewModel.trashedSnapshots.isEmpty ? 0.4 : 1.0)
+                        .accessibilityLabel("Show recently deleted snapshots")
 
                         importButton(with: viewModel)
                         exportMenu(with: viewModel)
