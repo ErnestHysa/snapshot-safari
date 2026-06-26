@@ -78,16 +78,24 @@ struct SnapshotDetailView: View {
                     description: Text("This snapshot has no tabs.")
                 )
             } else {
-                List(selection: $selectedTabs) {
-                    ForEach(filteredTabs, id: \.id) { tab in
-                        TabRow(tab: tab)
-                            .tag(tab.id)
-                            .listRowSeparator(.hidden)
+                VStack(spacing: 0) {
+                    TextField("Search tabs…", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+
+                    Divider()
+
+                    List(selection: $selectedTabs) {
+                        ForEach(filteredTabs, id: \.id) { tab in
+                            TabRow(tab: tab)
+                                .tag(tab.id)
+                                .listRowSeparator(.hidden)
+                        }
                     }
+                    .listStyle(.plain)
+                    .alternatingRowBackgrounds()
                 }
-                .listStyle(.plain)
-                .searchable(text: $searchText, prompt: "Search tabs…")
-                .alternatingRowBackgrounds()
             }
         }
         .safeAreaInset(edge: .bottom) {

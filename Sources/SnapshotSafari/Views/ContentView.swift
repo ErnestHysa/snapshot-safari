@@ -25,17 +25,24 @@ struct ContentView: View {
                     }
                 }
                 .toolbar {
-                    ToolbarItemGroup {
+                    ToolbarItem {
                         TrashButton(count: viewModel.trashedSnapshots.count) {
                             showingTrash = true
                         }
                         .disabled(viewModel.trashedSnapshots.isEmpty)
                         .opacity(viewModel.trashedSnapshots.isEmpty ? 0.4 : 1.0)
                         .accessibilityLabel("Show recently deleted snapshots")
-
+                    }
+                    ToolbarItem {
                         importButton(with: viewModel)
+                    }
+                    ToolbarItem {
                         exportMenu(with: viewModel)
+                    }
+                    ToolbarItem {
                         settingsButton(autoSnapshotManager: autoSnapshotManager)
+                    }
+                    ToolbarItem {
                         takeSnapshotButton(with: viewModel)
                     }
                 }
