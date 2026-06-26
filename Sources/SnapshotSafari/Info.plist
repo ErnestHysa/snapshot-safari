@@ -32,5 +32,9 @@
     <string>CxNyLH7T1UP6yaqtCpHSQVI5yDYCxwOSVehla2LA1jg=</string>
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/ErnestHysa/snapshot-safari/main/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <false/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
 </dict>
 </plist>
