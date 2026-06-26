@@ -86,7 +86,7 @@ struct SnapshotDetailView: View {
                     }
                 }
                 .listStyle(.plain)
-                .searchable(text: $searchText, placement: .sidebar, prompt: "Search tabs…")
+                .searchable(text: $searchText, prompt: "Search tabs…")
                 .alternatingRowBackgrounds()
             }
         }
