@@ -229,37 +229,48 @@ final class SafariBridge {
     /// macOS shows "Snapshot Safari wants to control Safari" and the TCC grant
     /// is recorded against `com.ernest.snapshot-safari`, putting our app in
     /// System Settings → Privacy & Security → Automation.
+    ///
+    /// Executes on the main actor because AppleEvents require a run loop
+    /// to process replies. Running on a background queue caused timeouts
+    /// when Safari was not the frontmost app.
     private func runScript(_ source: String) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                guard let language = OSALanguage(forName: "JavaScript") else {
-                    continuation.resume(throwing: OSAScriptError(
-                        info: ["OSAScriptErrorMessage": "JavaScript OSA language unavailable"],
-                        message: "JavaScript OSA language unavailable"
-                    ))
-                    return
-                }
-
-                let script = OSAScript(source: source, language: language)
-                var error: NSDictionary?
-                let result = script.executeAndReturnError(&error)
-
-                if let error {
-                    let message = Self.describeOSAError(error)
-                    continuation.resume(throwing: OSAScriptError(info: error, message: message))
-                    return
-                }
-
-                if let stringValue = result?.stringValue {
-                    continuation.resume(returning: stringValue)
-                    return
-                }
-
-                // Some scripts (notably `restoreTabs`) don't return a value but
-                // still succeed. Treat nil-string as success.
-                continuation.resume(returning: "")
-            }
+        guard let language = OSALanguage(forName: "JavaScript") else {
+            throw OSAScriptError(
+                info: ["OSAScriptErrorMessage": "JavaScript OSA language unavailable"],
+                message: "JavaScript OSA language unavailable"
+            )
         }
+
+        // AppleEvents need a run loop; execute on the main actor.
+        // Extract only Sendable types (String?, Int, String) from the
+        // closure since NSAppleEventDescriptor / NSDictionary are not Sendable.
+        let result = await MainActor.run { () -> (stringValue: String?, errorCode: Int, errorMessage: String) in
+            let script = OSAScript(source: source, language: language)
+            var error: NSDictionary?
+            let outcome = script.executeAndReturnError(&error)
+
+            if let error {
+                let message = Self.describeOSAError(error)
+                let code = (error[OSAScriptErrorNumberKey] as? Int) ?? 0
+                return (nil, code, message)
+            }
+
+            return (outcome?.stringValue, 0, "")
+        }
+
+        if result.errorCode != 0 {
+            throw OSAScriptError(
+                info: [
+                    OSAScriptErrorNumberKey: result.errorCode,
+                    OSAScriptErrorMessageKey: result.errorMessage
+                ],
+                message: result.errorMessage
+            )
+        }
+
+        // Some scripts (notably `restoreTabs`) don't return a value but
+        // still succeed. Treat nil-string as success.
+        return result.stringValue ?? ""
     }
 
     /// Wraps a non-descript OSA error info dictionary so call sites can pattern-match.
