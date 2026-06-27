@@ -2,6 +2,10 @@
 
 > Save and restore your Safari tabs — free up RAM without losing anything.
 
+<p align="center">
+  <img src="Resources/screenshot.png" alt="Snapshot Safari main window" width="800">
+</p>
+
 Snapshot Safari is a native macOS app that captures all your open Safari tabs into named snapshots, lets you restore them later in new or current windows, compare changes between snapshots, and automate the process on a schedule.
 
 Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
