@@ -35,7 +35,7 @@
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/ErnestHysa/snapshot-safari/main/appcast.xml</string>
     <key>SUEnableAutomaticChecks</key>
-    <false/>
+    <true/>
     <key>SUAutomaticallyUpdate</key>
     <false/>
 </dict>
