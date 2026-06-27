@@ -6,6 +6,28 @@
         <description>Most recent updates to Snapshot Safari</description>
         <language>en</language>
         <item>
+            <title>Snapshot Safari 1.0.3</title>
+            <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.3/SnapshotSafari-1.0.3-4.dmg</link>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
+            <pubDate>Fri, 27 Jun 2026 02:00:00 +0000</pubDate>
+            <description><![CDATA[
+                <h2>Snapshot Safari 1.0.3</h2>
+                <h3>Changes</h3>
+                <ul>
+                    <li><strong>Automatic update checks enabled.</strong> Sparkle now automatically checks for updates on launch. Previously automatic checks were disabled to suppress the first-run permission prompt.</li>
+                </ul>
+                <h3>Notes</h3>
+                <p>This build includes all fixes and features from 1.0.2 plus automatic Sparkle update checks. Ad-hoc signed — first launch requires a one-click Gatekeeper bypass.</p>
+            ]]></description>
+            <enclosure
+                url="https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.3/SnapshotSafari-1.0.3-4.dmg"
+                length="2229071"
+                type="application/octet-stream"
+                sparkle:edSignature="Kb9PbPEaSCXKAAxKZWRysgXALgOaMovSenRn7CeAoPKMbwqTH+UqX5SeipIDFqXJw0+eIYksw7RlAFqEyri/Cw=="
+                sparkle:os="macos"/>
+        </item>
+        <item>
             <title>Snapshot Safari 1.0.2</title>
             <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.2/SnapshotSafari-1.0.2-3.dmg</link>
             <sparkle:version>3</sparkle:version>
