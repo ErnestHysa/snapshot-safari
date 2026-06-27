@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var permissionsService = PermissionsService()
     @State private var showingWelcome = false
     @State private var showingTrash = false
+    @State private var isTakingSnapshot = false
 
     var body: some View {
         Group {
@@ -66,7 +67,7 @@ struct ContentView: View {
                     Text(errorMessage)
                 }
                 .overlay {
-                    if viewModel.isLoading {
+                    if isTakingSnapshot || viewModel.isLoading {
                         ProgressView("Working with Safari\u{2026}")
                             .padding()
                             .background(.ultraThinMaterial)
@@ -82,7 +83,12 @@ struct ContentView: View {
             initializeServices()
         }
         .onReceive(NotificationCenter.default.publisher(for: .takeSnapshot)) { _ in
-            Task { await viewModel?.takeSnapshot() }
+            guard !isTakingSnapshot else { return }
+            isTakingSnapshot = true
+            Task {
+                await viewModel?.takeSnapshot()
+                isTakingSnapshot = false
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
             if let autoSnapshotManager {
@@ -130,6 +136,7 @@ struct ContentView: View {
         Button(action: { takeSnapshot(viewModel) }) {
             Image(systemName: "camera.fill")
         }
+        .disabled(isTakingSnapshot)
         .help("Take Snapshot")
         .keyboardShortcut("n", modifiers: .command)
         .accessibilityLabel("Take a new snapshot")
@@ -139,7 +146,12 @@ struct ContentView: View {
     // MARK: - Actions
 
     private func takeSnapshot(_ viewModel: SnapshotListViewModel) {
-        Task { await viewModel.takeSnapshot() }
+        guard !isTakingSnapshot else { return }
+        isTakingSnapshot = true
+        Task {
+            await viewModel.takeSnapshot()
+            isTakingSnapshot = false
+        }
     }
 
     // MARK: - Bindings

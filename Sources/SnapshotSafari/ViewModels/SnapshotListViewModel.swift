@@ -35,15 +35,16 @@ final class SnapshotListViewModel {
 
     func takeSnapshot(isAuto: Bool = false) async {
         isLoading = true
-        defer { isLoading = false }
 
         do {
             let snapshot = try await snapshotService.takeSnapshot(isAuto: isAuto)
+            isLoading = false
             withAnimation {
                 snapshots.insert(snapshot, at: 0)
                 selectedSnapshot = snapshot
             }
         } catch {
+            isLoading = false
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -103,11 +104,12 @@ final class SnapshotListViewModel {
 
     func restoreSnapshot(_ snapshot: Snapshot, mode: SnapshotService.RestoreMode) async {
         isLoading = true
-        defer { isLoading = false }
 
         do {
             try await snapshotService.restoreSnapshot(snapshot, mode: mode)
+            isLoading = false
         } catch {
+            isLoading = false
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -115,11 +117,12 @@ final class SnapshotListViewModel {
 
     func restoreTabs(_ entries: [TabEntry], mode: SnapshotService.RestoreMode) async {
         isLoading = true
-        defer { isLoading = false }
 
         do {
             try await snapshotService.restoreTabs(entries, mode: mode)
+            isLoading = false
         } catch {
+            isLoading = false
             errorMessage = error.localizedDescription
             showError = true
         }
