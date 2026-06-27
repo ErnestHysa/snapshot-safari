@@ -71,16 +71,25 @@ open Package.swift
 ```
 SnapshotSafari/
 ├── Package.swift                    # SPM manifest (Swift 6.0, macOS 15+)
-├── SnapshotSafari.entitlements      # Sandbox + iCloud entitlements
+├── SnapshotSafari.entitlements      # Public build (no iCloud)
+├── appcast.xml                      # Sparkle update feed
 ├── Sources/SnapshotSafari/
 │   ├── SnapshotSafariApp.swift      # App entry, commands, CloudKit init
 │   ├── Info.plist                   # Bundle metadata, Sparkle keys
+│   ├── Resources/
+│   │   ├── Assets.xcassets          # App icon, colors
+│   │   ├── AppIcon.icns             # Compiled app icon
+│   │   └── Entitlements/            # Dual-variant entitlements
 │   ├── Models/                      # SwiftData models + Codable exports
 │   ├── Services/                    # Business logic (bridge, CRUD, sync, etc.)
 │   ├── ViewModels/                  # Observable state for views
 │   ├── Utilities/                   # Helpers (AutoNamer)
 │   └── Views/                       # SwiftUI views
-└── Tests/SnapshotSafariTests/       # 94 tests across 10 suites
+├── Scripts/
+│   ├── build-app.sh                 # swift build → .app bundle
+│   ├── generate-icon.py             # SVG → PNGs → AppIcon.icns
+│   └── release/                     # DMG, signing, notarization scripts
+└── Tests/SnapshotSafariTests/       # 114 tests across 13 suites
 ```
 
 ## Coding Guidelines
@@ -131,7 +140,7 @@ swift test --filter SnapshotServiceTests
 swift test --filter AutoNamerTests
 ```
 
-### Test Coverage (94 tests, 10 suites)
+### Test Coverage (114 tests, 13 suites)
 
 | Suite | Tests | Area |
 |-------|-------|------|
@@ -140,7 +149,9 @@ swift test --filter AutoNamerTests
 | SnapshotServiceTests | 27 | CRUD, search, trash, cleanup |
 | SnapshotDiffTests | 8 | URL diffing algorithm |
 | SnapshotExportTests | 14 | JSON export/import |
-| SyncServiceTests | 15 | iCloud sync state |
+| SyncServiceTests | 19 | iCloud sync state |
+| PermissionsServiceProbeTests | 4 | TCC permission probe |
+| SettingsTabTests | 5 | Settings UI |
 | RestoreModeTests | 2 | Restore mode enum |
 | SafariBridgeErrorTests | 5 | Error descriptions |
 
@@ -194,8 +205,12 @@ Feature requests are welcome! Please describe:
 
 ## Release Process
 
-1. Update `CFBundleShortVersionString` in `Info.plist`
-2. Generate a new Sparkle appcast
-3. Tag the release: `git tag v1.0.0 && git push --tags`
-4. Build and notarize the release binary
-5. Upload to GitHub Releases with release notes
+1. Update `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist`
+2. Build and sign the release DMG:
+   ```bash
+   ./Scripts/release/build-release.sh && ./Scripts/release/make-dmg.sh
+   ```
+3. Sign the DMG with Sparkle's `sign_update` tool
+4. Update `appcast.xml` with the new version's metadata + edSignature + DMG URL
+5. Tag the release: `git tag v1.0.2 && git push --tags`
+6. Create a GitHub Release with the DMG asset

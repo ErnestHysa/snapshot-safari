@@ -326,7 +326,7 @@ swift test --filter SyncServiceTests
 
 ## Test Coverage
 
-The project includes **97 tests across 10 suites**:
+The project includes **114 tests across 13 suites**:
 
 | Suite | Tests | What's Covered |
 |-------|-------|----------------|
@@ -336,6 +336,10 @@ The project includes **97 tests across 10 suites**:
 | SnapshotDiffTests | 8 | URL diffing, case-insensitivity, empty sets, many items |
 | SnapshotExportTests | 14 | JSON roundtrip, version validation, service integration |
 | SyncServiceTests | 19 | Default state, toggling, cloud availability, status messages, runtime iCloud entitlement detection |
+| PermissionsServiceProbeTests | 4 | TCC permission probe, error handling |
+| SettingsTabTests | 5 | Settings UI tabs and labels |
+| RestoreModeTests | 2 | Restore mode enum |
+| SafariBridgeErrorTests | 5 | Error descriptions |
 
 ## License
 
