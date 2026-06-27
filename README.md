@@ -25,21 +25,15 @@ Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
   <img src="Resources/screenshot-trash.png" alt="Trash view with recently deleted snapshots" width="700">
 </p>
 
+<p align="center">
+  <img src="Resources/screenshot-settings.png" alt="Settings panel with auto-snapshot configuration" width="700">
+</p>
+
 ### 🔄 Tab Restore
 
 - **Restore all tabs** or select specific tabs to restore
 - **Choose restore mode** — open in a new Safari window or append to the current window
 - **Tab preview** — see favicons, URLs, and domains for every tab in a snapshot
-
-### 📊 Comparison & Diffing
-
-- **Compare two snapshots** to see what tabs were added, removed, or unchanged
-- **Case-insensitive URL matching** — detects the same site regardless of URL casing
-- **Visual diff** — color-coded lists with badge counts
-
-<p align="center">
-  <img src="Resources/screenshot-compare.png" alt="Side-by-side snapshot comparison view" width="700">
-</p>
 
 ### ⏰ Auto-Snapshots
 
@@ -57,10 +51,6 @@ Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
 ### 🎨 Appearance
 
 - **Light, Dark, and System themes** — follow your macOS preference or choose manually
-
-<p align="center">
-  <img src="Resources/screenshot-settings.png" alt="Settings panel with auto-snapshot configuration" width="700">
-</p>
 
 ### 🔄 Auto-Updates
 
