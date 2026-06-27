@@ -8,6 +8,8 @@
     <string>Snapshot Safari</string>
     <key>CFBundleExecutable</key>
     <string>SnapshotSafari</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.ernest.snapshot-safari</string>
     <key>CFBundleInfoDictionaryVersion</key>

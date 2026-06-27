@@ -61,15 +61,18 @@ struct ContentView: View {
                 .onAppear {
                     checkFirstLaunch()
                 }
-                .alert("Error", isPresented: errorAlertBinding(for: viewModel)) {
-                    Button("OK") {}
+                .alert(
+                    viewModel.showError ? "Error" : "Restore Complete",
+                    isPresented: alertBinding(for: viewModel)
+                ) {
+                    Button("OK") {
+                        viewModel.showError = false
+                        viewModel.showInfo = false
+                    }
                 } message: {
-                    Text(errorMessage)
-                }
-                .alert("Restore Complete", isPresented: infoAlertBinding(for: viewModel)) {
-                    Button("OK") {}
-                } message: {
-                    Text(viewModel.infoMessage ?? "")
+                    Text(viewModel.showError
+                        ? (viewModel.errorMessage ?? "An unknown error occurred.")
+                        : (viewModel.infoMessage ?? ""))
                 }
             } else {
                 ProgressView("Loading\u{2026}")
@@ -168,17 +171,15 @@ struct ContentView: View {
         )
     }
 
-    private func errorAlertBinding(for viewModel: SnapshotListViewModel) -> Binding<Bool> {
+    private func alertBinding(for viewModel: SnapshotListViewModel) -> Binding<Bool> {
         Binding(
-            get: { viewModel.showError },
-            set: { viewModel.showError = $0 }
-        )
-    }
-
-    private func infoAlertBinding(for viewModel: SnapshotListViewModel) -> Binding<Bool> {
-        Binding(
-            get: { viewModel.showInfo },
-            set: { viewModel.showInfo = $0 }
+            get: { viewModel.showError || viewModel.showInfo },
+            set: { newValue in
+                if !newValue {
+                    viewModel.showError = false
+                    viewModel.showInfo = false
+                }
+            }
         )
     }
 
@@ -203,10 +204,6 @@ struct ContentView: View {
         let service = SnapshotService(modelContext: modelContext)
         viewModel = SnapshotListViewModel(snapshotService: service)
         autoSnapshotManager = AutoSnapshotManager(snapshotService: service)
-    }
-
-    private var errorMessage: String {
-        viewModel?.errorMessage ?? "An unknown error occurred."
     }
 
     private func importButton(with viewModel: SnapshotListViewModel) -> some View {
