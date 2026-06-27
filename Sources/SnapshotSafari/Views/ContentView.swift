@@ -66,17 +66,17 @@ struct ContentView: View {
                 } message: {
                     Text(errorMessage)
                 }
-                .overlay {
-                    if isTakingSnapshot || viewModel.isLoading {
-                        ProgressView("Working with Safari\u{2026}")
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                }
             } else {
                 ProgressView("Loading\u{2026}")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .overlay {
+            if isTakingSnapshot || (viewModel?.isLoading ?? false) {
+                ProgressView("Working with Safari\u{2026}")
+                    .padding()
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
         }
         .onAppear {

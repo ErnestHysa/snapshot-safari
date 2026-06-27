@@ -88,43 +88,68 @@ enum SafariScripts {
 
     /// Builds the JXA script that opens the given tabs in a new Safari window.
     /// `tabsJSON` must be a pre-escaped JSON array string.
+    ///
+    /// Uses `Document().make()` to create a fresh window. On macOS 26+
+    /// this may still fail with TCC errors if sent from a background
+    /// thread — the hybrid retry in `runScript` will fall back to the
+    /// main thread automatically.
     static func restoreInNewWindow(tabsJSON: String) -> String {
         return """
         function run() {
             var safari = Application('Safari');
             safari.includeStandardAdditions = true;
+            safari.activate();
+
             var tabs = JSON.parse('\(tabsJSON)');
-            var newWindow = safari.Window().make();
-            for (var i = 0; i < tabs.length; i++) {
-                var tab = safari.Tab({url: tabs[i].url});
-                newWindow.tabs.push(tab);
+
+            // Create a new document (= new window) and set its URL
+            // to the first tab. Document().make() is the JXA equivalent
+            // of AppleScript's "make new document".
+            var doc = safari.Document().make();
+            doc.url = tabs[0].url;
+
+            // Push remaining tabs into the new window
+            if (tabs.length > 1) {
+                var newWindow = safari.windows[0];
+                for (var i = 1; i < tabs.length; i++) {
+                    newWindow.tabs.push(
+                        safari.Tab({url: tabs[i].url})
+                    );
+                }
             }
-            newWindow.visible = true;
+
             return "Restored " + tabs.length + " tabs in new window.";
         }
         """
     }
 
     /// Builds the JXA script that appends the given tabs to Safari's front window.
-    /// Creates a new window if none is open. `tabsJSON` is a pre-escaped JSON array string.
+    /// Creates a new window via `openLocation` if none is open.
+    /// `tabsJSON` is a pre-escaped JSON array string.
     static func restoreInCurrentWindow(tabsJSON: String) -> String {
         return """
         function run() {
             var safari = Application('Safari');
             safari.includeStandardAdditions = true;
             var tabs = JSON.parse('\(tabsJSON)');
+
             if (safari.windows.length === 0) {
-                var newWindow = safari.Window().make();
-                for (var i = 0; i < tabs.length; i++) {
-                    var tab = safari.Tab({url: tabs[i].url});
-                    newWindow.tabs.push(tab);
+                // No windows open — use openLocation to create one
+                safari.openLocation(tabs[0].url);
+                var newWindow = safari.windows[0];
+                for (var i = 1; i < tabs.length; i++) {
+                    newWindow.tabs.push(
+                        safari.Tab({url: tabs[i].url})
+                    );
                 }
                 return "Restored " + tabs.length + " tabs in new window (none was open).";
             }
+
             var frontWindow = safari.windows[0];
             for (var i = 0; i < tabs.length; i++) {
-                var tab = safari.Tab({url: tabs[i].url});
-                frontWindow.tabs.push(tab);
+                frontWindow.tabs.push(
+                    safari.Tab({url: tabs[i].url})
+                );
             }
             return "Restored " + tabs.length + " tabs in current window.";
         }
@@ -188,11 +213,14 @@ final class SafariBridge {
             throw SafariBridgeError.safariNotRunning
         }
 
-        // Filter out tabs with nil URLs (Safari internal pages)
-        // and default to "about:blank" for safety — Safari handles this.
+        // Filter out tabs that can't be restored:
+        // - nil URLs (Safari internal pages with no address)
+        // - empty/blank URLs (placeholder values that would open blank tabs)
         let safeTabs = tabs.compactMap { tab -> SafariTab? in
-            guard tab.url != nil else {
-                logger.debug("Skipping tab with nil URL: \(tab.title)")
+            guard let url = tab.url,
+                  !url.isEmpty,
+                  url != "about:blank" else {
+                logger.debug("Skipping non-restorable tab: \(tab.title) (url: \(tab.url ?? "nil"))")
                 return nil
             }
             return tab
@@ -242,17 +270,30 @@ final class SafariBridge {
     /// System Settings → Privacy & Security → Automation.
     ///
     /// The blocking `executeAndReturnError` call runs on a GCD background
-    /// queue so the main actor is never blocked. A concurrent timeout
-    /// resumes the continuation if Safari doesn't reply in time; the
-    /// abandoned GCD thread eventually completes harmlessly.
+    /// queue so the main actor stays responsive for UI updates. A concurrent
+    /// timeout guard resumes the continuation if Safari doesn't reply in time;
+    /// the abandoned GCD thread eventually completes harmlessly.
+    ///
+    /// Some macOS versions have a TCC quirk where AppleEvents sent from
+    /// background threads are rejected as permission errors. If a permission
+    /// error occurs, the script is retried once on the main thread where
+    /// TCC checks pass reliably.
     private func runScript(_ source: String) async throws -> String {
+        do {
+            return try await runScript(on: .global(), source: source)
+        } catch let error as OSAScriptError where Self.isPermissionError(error) {
+            logger.debug("Permission error on background queue, retrying on main thread")
+            return try await runScript(on: .main, source: source)
+        }
+    }
+
+    /// Runs the script on the given dispatch queue.
+    private func runScript(on queue: DispatchQueue, source: String) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
             let lock = NSLock()
             var hasResumed = false
 
-            // Execute the blocking AppleScript on a background GCD queue
-            // so the main actor stays responsive for UI updates.
-            DispatchQueue.global().async {
+            queue.async {
                 guard let language = OSALanguage(forName: "JavaScript") else {
                     lock.lock()
                     if !hasResumed {
@@ -273,7 +314,6 @@ final class SafariBridge {
 
                 lock.lock()
                 guard !hasResumed else {
-                    // Timeout already fired — discard late result
                     lock.unlock()
                     return
                 }
@@ -292,10 +332,6 @@ final class SafariBridge {
                 }
             }
 
-            // Timeout guard: resume the continuation with an error if
-            // the script hasn't completed in time. The GCD thread above
-            // may still be blocked in executeAndReturnError — we abandon
-            // it (it will finish on its own, the lock prevents a crash).
             let logger = self.logger
             DispatchQueue.global().asyncAfter(deadline: .now() + Self.appleEventTimeoutSeconds) {
                 lock.lock()
