@@ -21,6 +21,10 @@ Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
 - **Delete with undo** — snapshots go to trash and are auto-cleaned after 30 days
 - **Export/Import** — share snapshots as JSON files (⌘E export, ⌘I import)
 
+<p align="center">
+  <img src="Resources/screenshot-trash.png" alt="Trash view with recently deleted snapshots" width="700">
+</p>
+
 ### 🔄 Tab Restore
 
 - **Restore all tabs** or select specific tabs to restore
@@ -32,6 +36,10 @@ Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
 - **Compare two snapshots** to see what tabs were added, removed, or unchanged
 - **Case-insensitive URL matching** — detects the same site regardless of URL casing
 - **Visual diff** — color-coded lists with badge counts
+
+<p align="center">
+  <img src="Resources/screenshot-compare.png" alt="Side-by-side snapshot comparison view" width="700">
+</p>
 
 ### ⏰ Auto-Snapshots
 
@@ -49,6 +57,10 @@ Built with **SwiftUI**, **SwiftData**, and **Sparkle**.
 ### 🎨 Appearance
 
 - **Light, Dark, and System themes** — follow your macOS preference or choose manually
+
+<p align="center">
+  <img src="Resources/screenshot-settings.png" alt="Settings panel with auto-snapshot configuration" width="700">
+</p>
 
 ### 🔄 Auto-Updates
 
