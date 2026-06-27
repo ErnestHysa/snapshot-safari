@@ -246,7 +246,8 @@ final class SnapshotService {
         }
     }
 
-    func restoreSnapshot(_ snapshot: Snapshot, mode: RestoreMode) async throws {
+    @discardableResult
+    func restoreSnapshot(_ snapshot: Snapshot, mode: RestoreMode) async throws -> Int {
         let bridge = SafariBridge()
         let tabs = snapshot.tabs.map { entry in
             SafariTab(
@@ -256,10 +257,11 @@ final class SnapshotService {
                 index: entry.index
             )
         }
-        try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
+        return try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
     }
 
-    func restoreTabs(_ entries: [TabEntry], mode: RestoreMode) async throws {
+    @discardableResult
+    func restoreTabs(_ entries: [TabEntry], mode: RestoreMode) async throws -> Int {
         let bridge = SafariBridge()
         let tabs = entries.map { entry in
             SafariTab(
@@ -269,6 +271,6 @@ final class SnapshotService {
                 index: entry.index
             )
         }
-        try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
+        return try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
     }
 }

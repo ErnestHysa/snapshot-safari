@@ -89,10 +89,9 @@ enum SafariScripts {
     /// Builds the JXA script that opens the given tabs in a new Safari window.
     /// `tabsJSON` must be a pre-escaped JSON array string.
     ///
-    /// Uses `Document().make()` to create a fresh window. On macOS 26+
-    /// this may still fail with TCC errors if sent from a background
-    /// thread — the hybrid retry in `runScript` will fall back to the
-    /// main thread automatically.
+    /// Creates a new document by pushing a Document object to Safari's
+    /// documents collection, which reliably opens a fresh window across
+    /// macOS versions.
     static func restoreInNewWindow(tabsJSON: String) -> String {
         return """
         function run() {
@@ -102,13 +101,11 @@ enum SafariScripts {
 
             var tabs = JSON.parse('\(tabsJSON)');
 
-            // Create a new document (= new window) and set its URL
-            // to the first tab. Document().make() is the JXA equivalent
-            // of AppleScript's "make new document".
-            var doc = safari.Document().make();
-            doc.url = tabs[0].url;
+            // Create a new document with the first URL, then push
+            // remaining tabs into the new window.
+            var doc = safari.Document({url: tabs[0].url});
+            safari.documents.push(doc);
 
-            // Push remaining tabs into the new window
             if (tabs.length > 1) {
                 var newWindow = safari.windows[0];
                 for (var i = 1; i < tabs.length; i++) {
@@ -208,7 +205,9 @@ final class SafariBridge {
     /// Tabs with `nil` URLs are silently dropped — Safari can't open
     /// a tab without a URL, and these represent internal pages (start
     /// page, etc.) that have no address to restore.
-    func restoreTabs(_ tabs: [SafariTab], mode: RestoreMode) async throws {
+    /// Returns the number of tabs actually restored.
+    @discardableResult
+    func restoreTabs(_ tabs: [SafariTab], mode: RestoreMode) async throws -> Int {
         guard isSafariRunning else {
             throw SafariBridgeError.safariNotRunning
         }
@@ -245,6 +244,7 @@ final class SafariBridge {
 
         do {
             _ = try await runScript(script)
+            return safeTabs.count
         } catch let error as OSAScriptError where Self.isPermissionError(error) {
             throw SafariBridgeError.permissionDenied
         }

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3a3a3c"/>
+      <stop offset="100%" stop-color="#1c1c1e"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded rect -->
+  <rect x="50" y="50" width="924" height="924" rx="230" ry="230" fill="url(#bg)"/>
+  
+  <!-- Camera body -->
+  <rect x="256" y="280" width="512" height="380" rx="40" ry="40" fill="#e8e8ed"/>
+  <rect x="296" y="280" width="432" height="90" rx="20" ry="20" fill="#d1d1d6"/>
+  
+  <!-- Flash dot -->
+  <circle cx="420" cy="340" r="30" fill="#ffcc00"/>
+  
+  <!-- Lens outer ring -->
+  <circle cx="512" cy="510" r="180" fill="#555558"/>
+  <!-- Lens dark -->
+  <circle cx="512" cy="510" r="155" fill="#2c2c30"/>
+  <!-- Lens inner ring -->
+  <circle cx="512" cy="510" r="120" fill="#48484a"/>
+  <!-- Aperture -->
+  <circle cx="512" cy="510" r="80" fill="#1a1a1e"/>
+  
+  <!-- Shutter blades -->
+  <g stroke="#6e6e72" stroke-width="3" opacity="0.6">
+    <line x1="512" y1="430" x2="512" y2="590"/>
+    <line x1="432" y1="510" x2="592" y2="510"/>
+    <line x1="455" y1="453" x2="569" y2="567"/>
+    <line x1="569" y1="453" x2="455" y2="567"/>
+  </g>
+  
+  <!-- Green Safari compass dot -->
+  <circle cx="700" cy="700" r="45" fill="#34c759"/>
+  <circle cx="700" cy="700" r="18" fill="#1d8c3e"/>
+</svg>

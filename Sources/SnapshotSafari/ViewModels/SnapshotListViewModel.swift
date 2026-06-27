@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import AppKit
 
 @MainActor
 @Observable
@@ -15,6 +16,8 @@ final class SnapshotListViewModel {
     var showingTrash = false
     var snapshotDiff: SnapshotDiff?
     var showComparison = false
+    var infoMessage: String?
+    var showInfo = false
 
     private let snapshotService: SnapshotService
 
@@ -106,8 +109,11 @@ final class SnapshotListViewModel {
         isLoading = true
 
         do {
-            try await snapshotService.restoreSnapshot(snapshot, mode: mode)
+            let restoredCount = try await snapshotService.restoreSnapshot(snapshot, mode: mode)
             isLoading = false
+            activateSafari()
+            infoMessage = "Successfully restored \(restoredCount) tab\(restoredCount == 1 ? "" : "s") to Safari."
+            showInfo = true
         } catch {
             isLoading = false
             errorMessage = error.localizedDescription
@@ -119,13 +125,24 @@ final class SnapshotListViewModel {
         isLoading = true
 
         do {
-            try await snapshotService.restoreTabs(entries, mode: mode)
+            let restoredCount = try await snapshotService.restoreTabs(entries, mode: mode)
             isLoading = false
+            activateSafari()
+            infoMessage = "Successfully restored \(restoredCount) tab\(restoredCount == 1 ? "" : "s") to Safari."
+            showInfo = true
         } catch {
             isLoading = false
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+
+    /// Bring Safari to the foreground so the user sees the restored tabs.
+    private func activateSafari() {
+        guard let safari = NSRunningApplication.runningApplications(
+            withBundleIdentifier: "com.apple.Safari"
+        ).first else { return }
+        safari.activate(options: .activateIgnoringOtherApps)
     }
 
     // MARK: - Comparison

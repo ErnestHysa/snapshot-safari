@@ -66,6 +66,11 @@ struct ContentView: View {
                 } message: {
                     Text(errorMessage)
                 }
+                .alert("Restore Complete", isPresented: infoAlertBinding(for: viewModel)) {
+                    Button("OK") {}
+                } message: {
+                    Text(viewModel.infoMessage ?? "")
+                }
             } else {
                 ProgressView("Loading\u{2026}")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -167,6 +172,13 @@ struct ContentView: View {
         Binding(
             get: { viewModel.showError },
             set: { viewModel.showError = $0 }
+        )
+    }
+
+    private func infoAlertBinding(for viewModel: SnapshotListViewModel) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.showInfo },
+            set: { viewModel.showInfo = $0 }
         )
     }
 
