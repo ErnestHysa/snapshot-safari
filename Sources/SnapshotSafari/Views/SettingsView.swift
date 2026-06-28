@@ -165,6 +165,18 @@ struct SettingsView: View {
 
                 if autoSnapshotManager.isEnabled {
                     Section {
+                        Picker("Capture target", selection: $autoSnapshotManager.target) {
+                            ForEach(AutoSnapshotTarget.all) { target in
+                                Label(target.label, systemImage: target.icon).tag(target)
+                            }
+                        }
+                        .accessibilityLabel("Auto-snapshot target")
+                        .accessibilityHint("Choose which browser to auto-snapshot: the frontmost browser, all running browsers, Safari, or Chrome.")
+                    } header: {
+                        Label("Capture Target", systemImage: "target")
+                    }
+
+                    Section {
                         ForEach(AutoSnapshotManager.presets, id: \.label) { preset in
                             Button {
                                 autoSnapshotManager.interval = preset.interval
@@ -281,31 +293,68 @@ struct SettingsView: View {
     // MARK: - Permissions
 
     private var permissionsTab: some View {
-        SettingsPane(title: SettingsTab.permissions.rawValue, subtitle: "Grant access to control Safari") {
+        SettingsPane(title: SettingsTab.permissions.rawValue, subtitle: "Grant access to control your browsers") {
             Section {
-                HStack {
-                    Label(permissionsService.statusMessage, systemImage: "lock.shield")
-                    Spacer()
-                    if permissionsService.isChecking {
-                        ProgressView().controlSize(.small)
+                ForEach(Browser.allCases.filter { $0.isInstalled && $0.supportsReadTabs }, id: \.rawValue) { browser in
+                    HStack {
+                        Image(systemName: browser.iconName)
+                            .frame(width: 20)
+                        Text(browser.displayName)
+                        Spacer()
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(permissionsService.permissions[browser.rawValue] == true ? Color.green : Color.orange)
+                                .frame(width: 6, height: 6)
+                            Text(permissionsService.permissions[browser.rawValue] == true ? "Granted" : "Needed")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
+                if Browser.allCases.filter({ $0.isInstalled && !$0.supportsReadTabs }).isEmpty == false {
+                    Divider()
+
+                    ForEach(Browser.allCases.filter { $0.isInstalled && !$0.supportsReadTabs }, id: \.rawValue) { browser in
+                        HStack {
+                            Image(systemName: browser.iconName)
+                                .frame(width: 20)
+                            Text(browser.displayName)
+                            Spacer()
+                            Text("Tab reading not supported")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+
+                if permissionsService.isChecking {
+                    HStack {
+                        Spacer()
+                        ProgressView().controlSize(.small)
+                        Spacer()
+                    }
+                }
+            } header: {
+                Label("Browser Permissions", systemImage: "keyboard")
+            }
+
+            Section {
                 Button("Open Automation Settings") {
                     permissionsService.openAutomationSettings()
                 }
                 .accessibilityHint("Opens System Settings to the Automation privacy pane.")
 
-                Button("Check Permission Again") {
+                Button("Check Permissions Again") {
                     Task {
-                        await permissionsService.checkAutomationPermission()
+                        await permissionsService.checkAllPermissions()
                     }
                 }
-                .accessibilityHint("Re-checks whether Snapshot Safari has Automation access to Safari.")
+                .accessibilityHint("Re-checks whether Snapshot Safari has Automation access to your browsers.")
             } header: {
-                Label("Automation", systemImage: "keyboard")
+                Label("Actions", systemImage: "arrow.triangle.2.circlepath")
             } footer: {
-                Text("Snapshot Safari needs Automation access to Safari to read and restore your tabs. Your data never leaves your Mac.")
+                Text("Snapshot Safari needs Automation access to read and restore your browser tabs. Your data never leaves your Mac. Browsers need to be running for the permission check to work.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

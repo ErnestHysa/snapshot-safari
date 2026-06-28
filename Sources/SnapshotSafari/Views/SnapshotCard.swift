@@ -9,6 +9,17 @@ struct SnapshotCard: View {
 
     private let maxPreviewFavicons = 5
 
+    /// Unique browsers in this snapshot.
+    private var browsers: [Browser] {
+        let ids = Set(snapshot.tabs.map { $0.browserId })
+        return ids.compactMap { Browser(rawValue: $0) }.sorted { $0.displayName < $1.displayName }
+    }
+
+    /// Whether this snapshot contains tabs from multiple browsers.
+    private var isMultiBrowser: Bool {
+        browsers.count > 1
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // Favicon preview column
@@ -47,6 +58,31 @@ struct SnapshotCard: View {
                     Text(snapshot.timeAgo)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+
+                    // Multi-browser indicator: "Capture All" badge + browser pills
+                    if isMultiBrowser {
+                        Label("Capture All", systemImage: "square.grid.2x2")
+                            .font(.caption2)
+                            .foregroundStyle(.tint)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.tint.opacity(0.1))
+                            .clipShape(Capsule())
+
+                        ForEach(browsers, id: \.rawValue) { browser in
+                            HStack(spacing: 3) {
+                                Image(systemName: browser.iconName)
+                                    .font(.system(size: 8))
+                                Text(browser.shortName)
+                                    .font(.caption2)
+                            }
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(browser.brandColor.opacity(0.15))
+                            .clipShape(Capsule())
+                            .foregroundStyle(browser.brandColor)
+                        }
+                    }
 
                     if snapshot.isAutoSnapshot {
                         Label("Auto", systemImage: "clock.arrow.circlepath")

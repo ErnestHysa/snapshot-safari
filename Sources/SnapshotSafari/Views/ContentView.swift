@@ -44,7 +44,7 @@ struct ContentView: View {
                         settingsButton(autoSnapshotManager: autoSnapshotManager)
                     }
                     ToolbarItem {
-                        takeSnapshotButton(with: viewModel)
+                        captureMenu(with: viewModel)
                     }
                 }
                 .sheet(isPresented: $showingWelcome) {
@@ -81,7 +81,7 @@ struct ContentView: View {
         }
         .overlay {
             if isTakingSnapshot || (viewModel?.isLoading ?? false) {
-                ProgressView("Working with Safari\u{2026}")
+                ProgressView("Capturing tabs\u{2026}")
                     .padding()
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -94,7 +94,7 @@ struct ContentView: View {
             guard !isTakingSnapshot else { return }
             isTakingSnapshot = true
             Task {
-                await viewModel?.takeSnapshot()
+                await viewModel?.takeSnapshotOfFrontmostBrowser()
                 isTakingSnapshot = false
             }
         }
@@ -140,24 +140,76 @@ struct ContentView: View {
         .accessibilityHint("Opens the settings window with tabs for general, auto-snapshots, sync, appearance, permissions, updates, and about.")
     }
 
-    private func takeSnapshotButton(with viewModel: SnapshotListViewModel) -> some View {
-        Button(action: { takeSnapshot(viewModel) }) {
+    private func captureMenu(with viewModel: SnapshotListViewModel) -> some View {
+        Menu {
+            // Primary action: frontmost browser via hotkey
+            Button {
+                takeSnapshotOfFrontmost(viewModel)
+            } label: {
+                if let frontmost = Browser.frontmostBrowser {
+                    Label("Capture \(frontmost.displayName)", systemImage: frontmost.iconName)
+                } else {
+                    Label("Capture Active Browser", systemImage: "camera.fill")
+                }
+            }
+            .keyboardShortcut("n", modifiers: .command)
+            .disabled(isTakingSnapshot)
+
+            Divider()
+
+            // Individual browser buttons (only installed & readable)
+            ForEach(Browser.allCases.filter { $0.isInstalled && $0.supportsReadTabs }, id: \.rawValue) { browser in
+                Button {
+                    takeSnapshotOf(viewModel, browser: browser)
+                } label: {
+                    Label("Capture \(browser.displayName)", systemImage: browser.iconName)
+                }
+                .disabled(isTakingSnapshot || !browser.isRunning)
+            }
+
+            Divider()
+
+            // Capture all running browsers
+            Button {
+                takeSnapshotOfAll(viewModel)
+            } label: {
+                Label("Capture All Running", systemImage: "square.grid.2x2")
+            }
+            .disabled(isTakingSnapshot || Browser.readableRunningBrowsers.isEmpty)
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+        } label: {
             Image(systemName: "camera.fill")
         }
-        .disabled(isTakingSnapshot)
         .help("Take Snapshot")
-        .keyboardShortcut("n", modifiers: .command)
         .accessibilityLabel("Take a new snapshot")
-        .accessibilityHint("Captures all open Safari tabs and saves them as a new snapshot.")
+        .accessibilityHint("Capture open tabs from a browser. ⌘N captures the frontmost browser, ⌘⇧N captures all running browsers.")
     }
 
     // MARK: - Actions
 
-    private func takeSnapshot(_ viewModel: SnapshotListViewModel) {
+    private func takeSnapshotOfFrontmost(_ viewModel: SnapshotListViewModel) {
         guard !isTakingSnapshot else { return }
         isTakingSnapshot = true
         Task {
-            await viewModel.takeSnapshot()
+            await viewModel.takeSnapshotOfFrontmostBrowser()
+            isTakingSnapshot = false
+        }
+    }
+
+    private func takeSnapshotOf(_ viewModel: SnapshotListViewModel, browser: Browser) {
+        guard !isTakingSnapshot else { return }
+        isTakingSnapshot = true
+        Task {
+            await viewModel.takeSnapshotOfBrowser(browser)
+            isTakingSnapshot = false
+        }
+    }
+
+    private func takeSnapshotOfAll(_ viewModel: SnapshotListViewModel) {
+        guard !isTakingSnapshot else { return }
+        isTakingSnapshot = true
+        Task {
+            await viewModel.takeSnapshotOfAllBrowsers()
             isTakingSnapshot = false
         }
     }
@@ -245,7 +297,7 @@ struct ContentView: View {
         }
 
         Task {
-            await permissionsService.checkAutomationPermission()
+            await permissionsService.checkAllPermissions()
         }
     }
 }

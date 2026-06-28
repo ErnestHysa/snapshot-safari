@@ -6,6 +6,41 @@
         <description>Most recent updates to Snapshot Safari</description>
         <language>en</language>
         <item>
+            <title>Snapshot Safari 1.1.0</title>
+            <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.1.0/SnapshotSafari-1.1.0-5.dmg</link>
+            <sparkle:version>5</sparkle:version>
+            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+            <pubDate>Sat, 28 Jun 2026 00:00:00 +0000</pubDate>
+            <description><![CDATA[
+                <h2>Snapshot Safari 1.1.0 — Multi-Browser Support</h2>
+                <h3>Major Features</h3>
+                <ul>
+                    <li><strong>Multi-browser capture.</strong> Capture tabs from Chrome, Brave, Edge, Opera, Vivaldi, Orion, Arc, and Firefox — not just Safari. Hotkeys (⌘N) capture the frontmost browser; ⌘⇧N captures all running browsers at once.</li>
+                    <li><strong>Per-browser organization.</strong> Tabs are tagged with their source browser. Multi-browser snapshots show a "Capture All" badge with colored browser pills in the sidebar and detail view.</li>
+                    <li><strong>Capture All.</strong> Take a single snapshot of tabs from every running browser simultaneously. Each tab remembers its origin and restores to the correct browser by default.</li>
+                    <li><strong>Browser-aware restore.</strong> Restore tabs to their original browsers, or pick a different target browser from a dropdown. Partial restore failures are surfaced with detailed per-browser error messages.</li>
+                    <li><strong>Browser filter.</strong> Filter the snapshot list by browser origin — show only Chrome snapshots, only Capture All snapshots, or all snapshots.</li>
+                    <li><strong>Colored browser badges.</strong> Each browser gets a distinct brand-colored pill badge (blue=Safari, green=Chrome, orange=Brave, etc.) for instant visual scanning.</li>
+                    <li><strong>Dynamic auto-snapshot targets.</strong> Auto-snapshots can target any installed readable browser, all running browsers, or just the frontmost.</li>
+                    <li><strong>Per-browser permissions.</strong> Settings shows Automation permission status for each browser individually.</li>
+                </ul>
+                <h3>Fixes &amp; Improvements</h3>
+                <ul>
+                    <li>Partial capture/restore failures are now surfaced as info messages instead of being silently swallowed.</li>
+                    <li>Browser tab count breakdown in the detail view for multi-browser snapshots.</li>
+                    <li>Improved empty states that reflect the active browser filter.</li>
+                </ul>
+                <h3>Tests</h3>
+                <p>164 tests across 16 suites covering multi-browser capture, restore, error handling, browser model, and UI logic.</p>
+            ]]></description>
+            <enclosure
+                url="https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.1.0/SnapshotSafari-1.1.0-5.dmg"
+                length="REPLACE_WITH_DMG_BYTES"
+                type="application/octet-stream"
+                sparkle:edSignature="REPLACE_WITH_SIGN_UPDATE_OUTPUT"
+                sparkle:os="macos"/>
+        </item>
+        <item>
             <title>Snapshot Safari 1.0.3</title>
             <link>https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.0.3/SnapshotSafari-1.0.3-4.dmg</link>
             <sparkle:version>4</sparkle:version>

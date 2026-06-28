@@ -1,6 +1,6 @@
 # 🦁 Snapshot Safari — Architecture Document
 
-> **Version:** 1.0.2
+> **Version:** 1.1.0
 > **Bundle ID:** `com.ernest.snapshot-safari`
 > **Distribution:** `.dmg` via ad-hoc signing (public) or Developer ID + notarization (signed)
 
@@ -8,37 +8,39 @@
 
 ## 1. Product Overview
 
-Snapshot Safari is a native macOS application that captures all open Safari tabs into named
+Snapshot Safari is a native macOS application that captures all open browser tabs into named
 **snapshots**, allowing users to close tabs to free RAM and restore them later — individually
-or all at once. It supports selective tab restore, snapshot comparison/diffing, auto-snapshots
+or all at once. It supports **9 browsers** (Safari, Chrome, Brave, Edge, Opera, Vivaldi,
+Orion, Arc, Firefox), selective tab restore, snapshot comparison/diffing, auto-snapshots
 on a schedule, JSON export/import, soft-delete with trash recovery, and iCloud sync (requires
 Apple Developer Program).
 
 ### Core Flow
 
 ```
-Safari (many tabs open)
+Browser(s) (many tabs open)
       │
-      ▼  User clicks "Take Snapshot" (⌘N)
+      ▼  User clicks "Take Snapshot" (⌘N = frontmost, ⌘⇧N = all running)
 ┌─────────────────┐
-│ OSAScript / JXA │── Queries Safari → returns [{url, title, windowIndex, index}]
+│ BrowserBridge    │── Reads tabs via JXA (WebKit or Chromium engine)
+│ (OSAScript/JXA) │── Returns [{url, title, windowIndex, index, browserId}]
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│   SwiftData DB   │── Stores snapshot + tabs (local SQLite)
+│   SwiftData DB   │── Stores snapshot + browser-tagged tabs (local SQLite)
 └────────┬────────┘
          │
          ▼
 ┌─────────────────────┐
-│  SwiftUI List View   │── Displays snapshots with favicons
+│  SwiftUI List View   │── Displays snapshots with browser badges + favicons
 └────────┬────────────┘
          │
     User clicks "Restore"
          │
          ▼
 ┌─────────────────┐
-│ OSAScript / JXA │── Opens tabs in Safari (new or current window)
+│ BrowserBridge    │── Opens tabs in their original browsers (or chosen target)
 └─────────────────┘
 ```
 
@@ -51,7 +53,7 @@ Safari (many tabs open)
 | Language         | Swift 6                             | Full strict concurrency, modern macOS        |
 | UI Framework     | SwiftUI                             | Declarative, dark/light, NavigationSplitView |
 | Data Persistence | SwiftData (`.sqlite` backing store) | Apple-native ORM, `#Predicate`, migrations   |
-| Safari Bridge    | JXA via `OSAScript`                 | In-process, returns structured JSON          |
+| Browser Bridge   | JXA via `OSAScript`                 | In-process, returns structured JSON, works across WebKit + Chromium |
 | Auto-Updates     | Sparkle 2.x                         | Standard Mac auto-update framework           |
 | iCloud Sync      | CloudKit (via SwiftData)            | Optional, requires Developer ID              |
 | Favicons         | Google Favicons API                 | `https://www.google.com/s2/favicons?domain=` |
@@ -76,32 +78,33 @@ Snapshot-Safari/
 │   │       ├── SnapshotSafari.entitlements       # Public build (no iCloud)
 │   │       └── SnapshotSafari.entitlements.dev   # Developer build (with iCloud)
 │   ├── Models/
+│   │   ├── Browser.swift                         # 9-browser enum: bundle IDs, brand colors, runtime state
 │   │   ├── Snapshot.swift                        # SwiftData model: snapshot with tabs
-│   │   ├── TabEntry.swift                        # SwiftData model: individual tab
+│   │   ├── TabEntry.swift                        # SwiftData model: browser-tagged tab
 │   │   ├── SnapshotDiff.swift                    # Diff computation between snapshots
 │   │   └── SnapshotExport.swift                  # Codable export/import format
 │   ├── Services/
-│   │   ├── SafariBridge.swift                    # JXA → Safari read/restore tabs
-│   │   ├── SnapshotService.swift                 # CRUD, search, trash, export/import
-│   │   ├── AutoSnapshotManager.swift             # Timer-based auto-snapshot loop
-│   │   ├── PermissionsService.swift              # Automation permission check + probe
+│   │   ├── BrowserBridge.swift                   # Protocol + WebKit/Chromium/Unscriptable bridges
+│   │   ├── SnapshotService.swift                 # Multi-browser capture/restore, CRUD, search, trash
+│   │   ├── AutoSnapshotManager.swift             # Dynamic browser-target auto-snapshot loop
+│   │   ├── PermissionsService.swift              # Per-browser Automation permission check
 │   │   ├── SyncService.swift                     # iCloud sync + runtime entitlement check
 │   │   ├── FaviconService.swift                  # Cached favicon fetching
 │   │   └── SparkleUpdater.swift                  # Auto-update orchestration
 │   ├── ViewModels/
-│   │   └── SnapshotListViewModel.swift           # Observable state for the main UI
+│   │   └── SnapshotListViewModel.swift           # Observable state: filters, capture, restore, export
 │   ├── Utilities/
-│   │   └── AutoNamer.swift                       # Smart snapshot name generation
+│   │   └── AutoNamer.swift                       # Smart snapshot name generation with browser names
 │   └── Views/
-│       ├── ContentView.swift                     # Root: NavigationSplitView + toolbar
-│       ├── SnapshotListView.swift                # Sidebar list with search
-│       ├── SnapshotCard.swift                    # List item with favicon preview
-│       ├── SnapshotDetailView.swift              # Tab list + restore/export/delete
-│       ├── TabRow.swift                          # Individual tab row with favicon
-│       ├── RestoreOptionsSheet.swift             # New/current window picker
-│       ├── CompareSnapshotsView.swift            # Visual diff display (added/removed/common)
+│       ├── ContentView.swift                     # Root: NavigationSplitView + toolbar with capture menu
+│       ├── SnapshotListView.swift                # Sidebar list with browser filter picker
+│       ├── SnapshotCard.swift                    # List item with Capture All badge + browser pills
+│       ├── SnapshotDetailView.swift              # Tab list + browser-aware restore/export/delete
+│       ├── TabRow.swift                          # Individual tab row with colored browser badge
+│       ├── RestoreOptionsSheet.swift             # Restore mode + browser target picker
+│       ├── CompareSnapshotsView.swift            # Visual diff display
 │       ├── TrashView.swift                       # Recently deleted snapshots
-│       ├── SettingsView.swift                    # Multi-tab settings panel
+│       ├── SettingsView.swift                    # Multi-browser permissions + auto-snapshot target
 │       └── WelcomeView.swift                     # First-launch onboarding
 ├── Scripts/
 │   ├── build-app.sh                              # swift build → .app bundle → codesign
@@ -114,96 +117,111 @@ Snapshot-Safari/
 │       ├── staple-and-verify.sh                  # stapler staple + spctl + codesign
 │       └── verify-release.sh                     # Bundle/codesign/entitlements/plist checks
 └── Tests/SnapshotSafariTests/
-    ├── AutoNamerTests.swift                      # 10 naming tests
-    ├── SafariBridgeTests.swift                   # 18 JXA + model tests
-    ├── SnapshotServiceTests.swift                # 27 CRUD, search, trash, cleanup tests
-    ├── SnapshotDiffTests.swift                   # 8 diff algorithm tests
-    ├── SnapshotExportTests.swift                 # 14 export/import tests
-    ├── SyncServiceTests.swift                    # 19 sync state + entitlement tests
-    ├── PermissionsServiceProbeTests.swift        # 4 TCC permission probe tests
-    ├── SettingsTabTests.swift                    # 5 settings UI tests
-    ├── RestoreModeTests.swift                    # 2 restore mode enum tests
-    └── SafariBridgeErrorTests.swift              # 5 error description tests
+    ├── BrowserBridgeTests.swift                   # BrowserTab, BrowserBridgeError, JXA execution
+    ├── SnapshotServiceTests.swift                 # CRUD, search, trash, cleanup
+    ├── RestoreServiceTests.swift                  # RestorePartialFailure, restoreGroups with MockBridge
+    ├── AutoSnapshotTargetTests.swift              # Dynamic target resolution, migration
+    ├── SnapshotDiffTests.swift                    # Diff algorithm
+    ├── SnapshotExportTests.swift                  # Export/import
+    ├── SyncServiceTests.swift                     # Sync state + entitlements
+    ├── AutoNamerTests.swift                       # Naming
+    ├── PermissionsServiceProbeTests.swift         # TCC permission probe
+    └── SettingsTabTests.swift                     # Settings UI
 ```
 
 ---
 
 ## 4. Data Model
 
-### 4.1 Snapshot
+### 4.1 Browser (Enum)
+
+```swift
+enum Browser: String, CaseIterable, Identifiable, Codable {
+    case safari  = "com.apple.Safari"
+    case chrome  = "com.google.Chrome"
+    case brave   = "com.brave.Browser"
+    case edge    = "com.microsoft.edgemac"
+    case opera   = "com.operasoftware.Opera"
+    case vivaldi = "com.vivaldi.Vivaldi"
+    case orion   = "com.kagi.kagimacOS"
+    case arc     = "company.thebrowser.Browser"
+    case firefox = "org.mozilla.firefox"
+
+    var engine: BrowserEngine          // .webkit, .chromium, .unscriptable
+    var supportsReadTabs: Bool
+    var iconName: String               // SF Symbol
+    var brandColor: Color              // Tinted badge background
+    var isRunning: Bool
+    var isInstalled: Bool
+}
+```
+
+### 4.2 Snapshot
 
 ```swift
 @Model
 final class Snapshot {
     var id: UUID
-    var name: String                    // Auto-named, user-renamable
+    var name: String                    // Auto-named with browser name
     var createdAt: Date
-    var updatedAt: Date                 // Updated on rename
-    var tabCount: Int                   // Denormalized for fast list display
+    var updatedAt: Date
     var isTrashed: Bool                 // Soft-delete flag
     var deletedAt: Date?                // Timestamp for 30-day auto-purge
-    var isAutoSnapshot: Bool            // Distinguishes manual vs auto
+    var isAutoSnapshot: Bool
     @Relationship(deleteRule: .cascade) var tabs: [TabEntry]
+    var tabCount: Int { tabs.count }
 }
 ```
 
-### 4.2 TabEntry
+### 4.3 TabEntry
 
 ```swift
 @Model
 final class TabEntry {
     var id: UUID
-    var url: String                     // Full URL (or "about:blank" if nil)
-    var domain: String                  // Extracted domain (for grouping)
-    var title: String                   // Page title from Safari
-    var windowIndex: Int                // Which window the tab was in
-    var index: Int                      // Order within window
-    var snapshot: Snapshot?             // Inverse relationship
+    var url: String
+    var domain: String
+    var title: String
+    var windowIndex: Int
+    var index: Int
+    var browserId: String               // Browser.rawValue (bundle identifier)
+    var browser: Browser?               // Computed from browserId
+    var snapshot: Snapshot?
 }
 ```
 
-### 4.3 SnapshotDiff
+### 4.4 SnapshotDiff / SnapshotExport
 
-A pure value type (not persisted) that compares two snapshots:
-
-```swift
-struct SnapshotDiff {
-    let added: [TabEntry]       // In newer but not older (case-insensitive URL match)
-    let removed: [TabEntry]     // In older but not newer
-    let common: [TabEntry]      // In both
-    let older: Snapshot
-    let newer: Snapshot
-}
-```
-
-### 4.4 SnapshotExport
-
-A `Codable` envelope for JSON export/import:
-
-```swift
-struct SnapshotExport: Codable {
-    let version: Int
-    let exportedAt: Date
-    let snapshots: [SnapshotData]
-}
-```
+Unchanged from 1.0.x — pure value types for comparison and JSON export/import.
 
 ---
 
-## 5. Safari Bridge (JXA)
+## 5. Browser Bridge (JXA)
 
-### 5.1 Strategy
+### 5.1 Architecture
 
-Use **JXA (JavaScript for Automation)** via `OSAScript` executed in-process. This:
-- Returns structured JSON (arrays/objects) unlike AppleScript's text returns
-- Registers the TCC Automation permission under the app's bundle ID (not `com.apple.osascript`)
-- Supports both read (query tabs) and write (open new tabs/windows) operations
+A `BrowserBridge` protocol abstracts tab reading and restoring:
+
+```swift
+protocol BrowserBridge {
+    func readAllTabs() async throws -> [BrowserTab]
+    func restoreTabs(_ tabs: [BrowserTab], mode: BrowserRestoreMode) async throws -> Int
+}
+```
+
+Three implementations:
+- **`WebKitBridge`** — Safari, Orion (WebKit JXA dictionary)
+- **`ChromiumBridge`** — Chrome, Brave, Edge, Opera, Vivaldi (identical Chromium JXA dictionary)
+- **`UnscriptableBridge`** — Arc, Firefox (no scripting dictionary; can open URLs but can't read tabs)
+
+`BrowserBridgeFactory.create(for:)` selects the correct implementation by checking the browser's engine.
 
 ### 5.2 Reading Tabs
 
+The JXA script is parameterized by the browser's `jxaAppName`:
 ```javascript
-var safari = Application('Safari');
-var windows = safari.windows();
+var app = Application('Safari');         // or 'Google Chrome', 'Brave Browser', etc.
+var windows = app.windows();
 var tabs = [];
 for (var w = 0; w < windows.length; w++) {
     var windowTabs = windows[w].tabs();
@@ -212,256 +230,132 @@ for (var w = 0; w < windows.length; w++) {
             url: windowTabs[t].url(),
             title: windowTabs[t].name(),
             windowIndex: w,
-            index: t
+            index: t,
+            browserId: "com.apple.Safari"
         });
     }
 }
 JSON.stringify(tabs);
 ```
 
-Executed via a hybrid GCD approach: background queue first (fast, non-blocking), with automatic
-retry on the main thread if TCC rejects the background-thread AppleEvent. A `withTimeout`
-mechanism guards against hung scripts.
-
 ### 5.3 Restoring Tabs
 
-Two modes, both using JXA:
-
-**New Window:**
-```javascript
-var safari = Application('Safari');
-var doc = safari.Document({url: tabs[0].url});
-safari.documents.push(doc);
-// ... additional tabs pushed to the new document
-```
-
-**Current Window (append):**
-```javascript
-var safari = Application('Safari');
-// Append tabs to the frontmost window, or openLocation if none open
-```
-
-The restore function returns the count of successfully restored tabs, which is used
-to show a "Successfully restored N tabs" alert. After restore, Safari is brought to
-the foreground via `NSRunningApplication.activate(.activateIgnoringOtherApps)`.
+Tabs are restored per-browser-group. The `BrowserRestoreMode` enum (`.newWindow`, `.currentWindow`) maps to the appropriate JXA commands. For unscriptable browsers, `NSWorkspace.shared.open(_:withApplicationAt:)` is used instead.
 
 ---
 
-## 6. UI Architecture
+## 6. Multi-Browser Capture & Restore
 
-### 6.1 Main Window Layout
+### 6.1 Capture All (`takeSnapshotOfAllBrowsers`)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Sidebar (Snapshots)          │  Detail (Tabs)               │
-│                               │                               │
-│  ┌───────────────────────┐    │  ┌─────────────────────────┐ │
-│  │ Search Bar             │    │  │ Snapshot Name (editable)│ │
-│  ├───────────────────────┤    │  ├─────────────────────────┤ │
-│  │ Snapshot Card          │    │  │ Tab Row  🌐 example.com │ │
-│  │ 📷 Mar 24 — 15 tabs    │    │  │ Tab Row  🌐 google.com  │ │
-│  ├───────────────────────┤    │  │ Tab Row  🌐 github.com  │ │
-│  │ Snapshot Card          │    │  │                         │ │
-│  │ 📷 Mar 23 — 8 tabs     │    │  │ [Restore All]           │ │
-│  └───────────────────────┘    │  │ [Export] [Delete]        │ │
-│                               │  └─────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+Uses `TaskGroup` with `Result<[BrowserTab], BrowserCaptureFailure>` for concurrent capture across all running readable browsers. Partial failures are surfaced via `CapturePartialFailure` (carries the persisted `Snapshot` so the UI can display it immediately).
 
-### 6.2 Navigation
+### 6.2 Restore (`restoreSnapshot` / `restoreTabs`)
 
-- **NavigationSplitView** (sidebar + detail on macOS)
-- Sidebar: List of snapshots sorted by date (newest first), with search
-- Detail: Selected snapshot's tabs with individual checkboxes for selective restore
-- Toolbar: Take Snapshot, Import, Export, Settings, Trash button
-- `.overlay` for "Working with Safari…" progress indicator on the outer `Group`
+Tabs are grouped by `browserId` and restored to their original browsers via `restoreGroups()`. Partial failures are surfaced via `RestorePartialFailure` (carries `totalRestored` count and per-browser errors).
 
-### 6.3 RestoreOptionsSheet
+### 6.3 Dependency Injection for Testing
 
-When user clicks "Restore", a sheet appears:
-- **New Safari Window** — opens tabs in a fresh window
-- **Current Window** — appends to the frontmost window
-- Selected tabs or all tabs, depending on user selection
-
-### 6.4 Settings
-
-Multi-tab settings panel with native NSWindow chrome:
-- **General**: Theme (Light/Dark/System)
-- **Auto-Snapshots**: Enable toggle, interval picker (presets + custom)
-- **Appearance**: Theme override
-- **Storage**: Data management
-- **Sync**: iCloud sync toggle (disabled if no entitlement)
-- **About**: Version info, "Check for Updates" button, GitHub link
-
-### 6.5 CompareSnapshotsView
-
-Visual diff between two snapshots:
-- 🟢 **Added** tabs (in newer, not in older)
-- 🔴 **Removed** tabs (in older, not in newer)
-- ⚪ **Common** tabs (unchanged)
-- Case-insensitive URL matching
+`SnapshotService.init` accepts a `bridgeProvider: @Sendable (Browser) -> any BrowserBridge` closure (defaults to `BrowserBridgeFactory.create`). Tests inject a `MockBridge` to control success/failure behavior.
 
 ---
 
-## 7. Auto-Snapshot System
+## 7. UI Architecture
 
-### 7.1 Architecture
+### 7.1 Main Window Layout
 
 ```
-AutoSnapshotManager (@MainActor)
-├── Timer (runs while app is active)
-│   └── Fires at configured interval
-├── UserDefaults saves toggle + interval
-│
-└── On fire:
-    1. Check if Safari is running
-    2. If yes, take snapshot (via SafariBridge)
-    3. Name: "Auto — Mar 24, 2026"
-    4. Save to SwiftData (isAutoSnapshot: true)
-    5. Fail silently if Safari isn't running
+┌─────────────────────────────────────────────────────────────────┐
+│  Sidebar (Snapshots)             │  Detail (Tabs)                │
+│                                  │                               │
+│  [Browser Filter: All Snapshots] │  ┌─────────────────────────┐ │
+│  ┌────────────────────────────┐  │  │ Snapshot Name (editable)│ │
+│  │ 🔍 Search Bar              │  │  │ [Capture All] [Safari]  │ │
+│  ├────────────────────────────┤  │  │ [Chrome]                │ │
+│  │ Snapshot Card              │  │  ├─────────────────────────┤ │
+│  │ 📷 [CaptureAll][Safari][Ch]│  │  │ Tab Row 🌐 example.com │ │
+│  │    Jun 28 — 8 tabs          │  │  │           [Safari] pill │ │
+│  ├────────────────────────────┤  │  │ Tab Row 🌐 google.com  │ │
+│  │ Snapshot Card              │  │  │           [Chrome] pill │ │
+│  │ 📷 Jun 28 — 5 tabs         │  │  └─────────────────────────┘ │
+│  └────────────────────────────┘  │  [Restore All] [Export][🗑]  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 Intervals
+### 7.2 Key UI Components
 
-| Preset  | Seconds   |
-| ------- | --------- |
-| 30 min  | 1800      |
-| 1 hour  | 3600      |
-| 2 hours | 7200      |
-| 4 hours | 14400     |
-| Custom  | User-set (min 5 min) |
-
-- Auto-snapshots are tagged with `isAutoSnapshot: true` for filtering
-- The auto-snapshot state and interval persist across app restarts
-- Timer-based; the app must be running (background is fine)
+- **ContentViewModel** — Toolbar camera menu: ⌘N captures frontmost, ⌘⇧N captures all, individual browser buttons
+- **SnapshotListViewModel** — `BrowserFilter` enum (`.all`, `.captureAll`, `.specific(Browser)`) with dynamic `availableBrowserFilters`; filter + search composable
+- **SnapshotCard** — Colored browser pills with brand tints; "Capture All" badge for multi-browser snapshots
+- **SnapshotDetailView** — "Capture All" header badge + browser pills; browser-aware restore
+- **TabRow** — Per-tab browser badge with brand color
+- **RestoreOptionsSheet** — Mode picker + browser target dropdown (defaults to "Original Browser(s)")
+- **SettingsView** — Per-browser permissions grid; dynamic auto-snapshot target picker
 
 ---
 
-## 8. Permissions & Security
+## 8. Auto-Snapshot System
 
-### 8.1 Required Permissions
+### 8.1 Dynamic Targets
 
-| Permission            | Why Needed                           | How to Request                        |
-| --------------------- | ------------------------------------ | ------------------------------------- |
-| Automation → Safari   | Query tabs + open tabs via JXA       | Automatic on first script execution   |
+`AutoSnapshotTarget` is a struct (not enum) with static `.frontmost` and `.allRunning` constants, plus dynamically computed `installedBrowserTargets` from `Browser.installedBrowsers`. Storage uses id strings (`"frontmost"`, `"allRunning"`, `"browser:com.apple.Safari"`) with migration from old enum raw values.
 
-### 8.2 Permission Flow
+### 8.2 Intervals
 
-1. User opens app → Welcome screen explains the need for Safari access
-2. Clicking "Grant Permission" triggers a JXA execution → macOS shows TCC dialog
-3. If denied: Show branded sheet with step-by-step instructions to System Settings
-4. Permission probe detects whether the app appears in Automation settings
-5. In-process `OSAScript` execution ensures the permission is registered under `com.ernest.snapshot-safari`
-
-### 8.3 Privacy
-
-- All data stays **local** (SQLite via SwiftData)
-- No analytics, no tracking, no telemetry
-- Favicon fetches use Google's public service (`google.com/s2/favicons`)
-- URLs are never sent to any server (except favicon fetches)
-- iCloud sync is opt-in and requires Apple Developer Program
+Same as 1.0.x: 30 min, 1h, 2h, 4h presets + custom (min 5 min).
 
 ---
 
-## 9. Search Implementation
+## 9. Permissions & Security
 
-Search across snapshots by name, and across tabs by URL, title, and domain.
-
-Uses `#Predicate` with SwiftData for efficient filtering at the database level:
-
-```swift
-#Predicate<Snapshot> {
-    $0.name.localizedStandardContains(searchText)
-    || $0.tabs.contains {
-        $0.url.localizedStandardContains(searchText)
-        || $0.title.localizedStandardContains(searchText)
-        || $0.domain.localizedStandardContains(searchText)
-    }
-}
-```
+- **Per-browser Automation permission** — checked via JXA probe for each installed readable browser
+- **PermissionsService** stores per-browser permission state in a `[Browser: Bool]` dictionary
+- iCloud entitlements detected at runtime via `SecTaskCopyValueForEntitlement`
 
 ---
 
 ## 10. Soft-Delete Trash System
 
-- Snapshots are soft-deleted with `isTrashed = true` and `deletedAt = Date()`
-- TrashView shows recently deleted snapshots with count badge in toolbar
-- Restore from trash reverses the flags
-- Auto-purge: snapshots in trash for > 30 days are permanently deleted
-- Cleanup runs on app launch via `cleanUpOldTrash()`
+Unchanged from 1.0.x — soft-delete with 30-day auto-purge.
 
 ---
 
 ## 11. Sparkle Auto-Updates
 
-Sparkle 2.x is fully integrated:
-
-- `SPUStandardUpdaterController` in `SparkleUpdater.swift`
-- `SUFeedURL` in Info.plist points to `appcast.xml` on the `main` branch
-- `SUPublicEDKey` validates update signatures
-- `SparkleUpdateChecker` (`@Observable`) provides SwiftUI-friendly state
-- "Check for Updates" menu item calls `SparkleUpdater.shared.checkForUpdates()`
-- Disabled on first launch (`SUEnableAutomaticChecks = false`) to avoid the Sparkle first-run prompt
+Sparkle 2.x checks `appcast.xml` on the `main` branch, compares `sparkle:version` (build number) against the local `CFBundleVersion`, validates the EdDSA `edSignature`, and downloads the DMG from the GitHub release URL.
 
 **Update publishing flow:**
 1. Bump version in Info.plist
 2. Build and sign the DMG
-3. Sign the DMG with `Sparkle/bin/sign_update` (private key in Keychain)
-4. Update `appcast.xml` with the new version's metadata + edSignature + length
-5. Commit and push; create a GitHub Release with the DMG asset
-6. Sparkle picks up the update on next check
+3. Sign the DMG with `Sparkle/bin/sign_update`
+4. Update `appcast.xml` with the new version's metadata + edSignature + file length
+5. Commit, push, create GitHub Release with the DMG asset
 
 ---
 
 ## 12. iCloud Sync
 
-iCloud Sync is fully implemented but **disabled in the public build** because the CloudKit
-container + iCloud services entitlements require a Developer ID signature (AMFI kills
-ad-hoc binaries that request them).
-
-- `SyncService` detects runtime entitlements via `SecTaskCopyValueForEntitlement`
-- When CloudKit entitlements are absent, the toggle is disabled with an explanation
-- When present (signed build), SwiftData's `ModelConfiguration.cloudKitDatabase` handles sync
-- Sync state is observed and displayed in Settings → Sync tab
+Unchanged from 1.0.x — implemented but disabled in public builds due to AMFI requirements.
 
 ---
 
 ## 13. Test Coverage
 
-**114 tests across 13 suites:**
+**164 tests across 16 suites:**
 
 | Suite | Tests | Area |
 |-------|-------|------|
-| AutoNamerTests | 10 | Snapshot naming logic |
-| SafariBridgeTests | 18 | Tab model, Codable, error messages |
+| BrowserBridgeTests | 18 | BrowserTab model, BrowserBridgeError, JXA |
 | SnapshotServiceTests | 27 | CRUD, search, trash, cleanup |
-| SnapshotDiffTests | 8 | URL diffing algorithm |
-| SnapshotExportTests | 14 | JSON export/import roundtrip |
-| SyncServiceTests | 19 | iCloud sync state, entitlements |
-| PermissionsServiceProbeTests | 4 | TCC permission probe |
+| RestoreServiceTests | 18 | RestorePartialFailure, restoreGroups, MockBridge |
+| AutoSnapshotTargetTests | 28 | Dynamic targets, migration, filtering |
+| SnapshotDiffTests | 8 | URL diffing |
+| SnapshotExportTests | 14 | JSON export/import |
+| SyncServiceTests | 19 | iCloud sync state |
+| AutoNamerTests | 10 | Naming logic |
+| PermissionsServiceProbeTests | 4 | TCC probe |
 | SettingsTabTests | 5 | Settings UI |
-| RestoreModeTests | 2 | Restore mode enum |
-| SafariBridgeErrorTests | 5 | Error descriptions |
-
-Tests use Swift Testing (`@Test`, `#expect`) with in-memory `ModelConfiguration` for
-SwiftData tests. Pure logic tests run in plain structs; SwiftData tests use `@MainActor`.
 
 ---
 
-## 14. Key Architectural Decisions
-
-| Decision                    | Choice                           | Rationale                                                |
-| --------------------------- | -------------------------------- | -------------------------------------------------------- |
-| Persistence                 | SwiftData                        | Less boilerplate than Core Data, modern Swift syntax     |
-| Safari integration          | JXA via OSAScript                | In-process, proper TCC registration, structured JSON     |
-| Restore mode                | User chooses per restore         | Maximum flexibility                                      |
-| Favicon source              | Google favicons API              | Free, no API key, works for all URLs                     |
-| Update framework            | Sparkle 2.x                      | Industry standard, signed updates                        |
-| iCloud sync                 | CloudKit via SwiftData           | Apple-native, zero-config when entitled                  |
-| Script execution            | Hybrid GCD + main thread retry   | Responsive UI + TCC compatibility for write operations   |
-| Concurrency                 | `@MainActor` + Swift 6 strict    | Safe access to SwiftData and AppKit from main thread     |
-| State management            | `@Observable`                    | Modern SwiftUI, no `ObservableObject` boilerplate        |
-
----
-
-*Last updated: June 27, 2026*
+*Last updated: June 28, 2026*

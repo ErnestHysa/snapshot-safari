@@ -35,6 +35,21 @@ struct TabRow: View {
 
             Spacer()
 
+            // Browser badge - tinted with brand color
+            if let browser = tab.browser {
+                HStack(spacing: 3) {
+                    Image(systemName: browser.iconName)
+                        .font(.system(size: 8))
+                    Text(browser.shortName)
+                        .font(.caption2)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(browser.brandColor.opacity(0.12))
+                .clipShape(Capsule())
+                .foregroundStyle(browser.brandColor)
+            }
+
             // Domain badge
             Text(tab.domain)
                 .font(.caption2)

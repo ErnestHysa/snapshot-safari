@@ -19,11 +19,73 @@ final class SnapshotListViewModel {
     var infoMessage: String?
     var showInfo = false
 
+    /// Filter snapshots by browser origin.
+    var browserFilter: BrowserFilter = .all
+
+    enum BrowserFilter: Hashable {
+        case all
+        case captureAll
+        case specific(Browser)
+
+        var label: String {
+            switch self {
+            case .all: return "All Snapshots"
+            case .captureAll: return "Capture All"
+            case .specific(let browser): return browser.shortName
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .all: return "tray.full"
+            case .captureAll: return "square.grid.2x2"
+            case .specific(let browser): return browser.iconName
+            }
+        }
+    }
+
+    /// The set of browsers that appear in at least one snapshot (for populating the filter menu).
+    var availableBrowserFilters: [BrowserFilter] {
+        var filters: [BrowserFilter] = [.all]
+        let browserIds = Set(snapshots.flatMap { $0.tabs.map(\.browserId) })
+        let browsers = browserIds.compactMap { Browser(rawValue: $0) }.sorted { $0.displayName < $1.displayName }
+        if browsers.count > 1 {
+            filters.append(.captureAll)
+        }
+        for browser in browsers {
+            filters.append(.specific(browser))
+        }
+        return filters
+    }
+
     private let snapshotService: SnapshotService
 
     var filteredSnapshots: [Snapshot] {
-        guard !searchText.isEmpty else { return snapshots }
-        return snapshotService.searchSnapshots(query: searchText)
+        let base = browserFilteredSnapshots
+        guard !searchText.isEmpty else { return base }
+        let query = searchText.lowercased()
+        return base.filter { snapshot in
+            snapshot.name.localizedCaseInsensitiveContains(query)
+            || snapshot.tabs.contains { tab in
+                tab.title.localizedCaseInsensitiveContains(query)
+                || tab.url.localizedCaseInsensitiveContains(query)
+                || tab.domain.localizedCaseInsensitiveContains(query)
+            }
+        }
+    }
+
+    /// Apply browser-only filtering (text search applies on top of this).
+    private var browserFilteredSnapshots: [Snapshot] {
+        switch browserFilter {
+        case .all:
+            return snapshots
+        case .captureAll:
+            return snapshots.filter { isMultiBrowserSnapshot($0) }
+        case .specific(let browser):
+            return snapshots.filter { snapshot in
+                snapshot.tabs.contains { $0.browserId == browser.rawValue }
+            }
+        }
     }
 
     init(snapshotService: SnapshotService) {
@@ -46,6 +108,74 @@ final class SnapshotListViewModel {
                 snapshots.insert(snapshot, at: 0)
                 selectedSnapshot = snapshot
             }
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    /// Capture the frontmost browser (hotkey path)
+    func takeSnapshotOfFrontmostBrowser(isAuto: Bool = false) async {
+        guard let frontmost = Browser.frontmostBrowser, frontmost.supportsReadTabs else {
+            errorMessage = "The active application is not a supported browser."
+            showError = true
+            return
+        }
+
+        isLoading = true
+
+        do {
+            let snapshot = try await snapshotService.takeSnapshot(browser: frontmost, isAuto: isAuto)
+            isLoading = false
+            withAnimation {
+                snapshots.insert(snapshot, at: 0)
+                selectedSnapshot = snapshot
+            }
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    /// Capture a specific browser
+    func takeSnapshotOfBrowser(_ browser: Browser, isAuto: Bool = false) async {
+        isLoading = true
+
+        do {
+            let snapshot = try await snapshotService.takeSnapshot(browser: browser, isAuto: isAuto)
+            isLoading = false
+            withAnimation {
+                snapshots.insert(snapshot, at: 0)
+                selectedSnapshot = snapshot
+            }
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    /// Capture ALL running browsers with tab-reading support
+    func takeSnapshotOfAllBrowsers(isAuto: Bool = false) async {
+        isLoading = true
+
+        do {
+            let snapshot = try await snapshotService.takeSnapshotOfAllBrowsers(isAuto: isAuto)
+            isLoading = false
+            withAnimation {
+                snapshots.insert(snapshot, at: 0)
+                selectedSnapshot = snapshot
+            }
+        } catch let partial as SnapshotService.CapturePartialFailure {
+            isLoading = false
+            withAnimation {
+                snapshots.insert(partial.snapshot, at: 0)
+                selectedSnapshot = partial.snapshot
+            }
+            infoMessage = partial.localizedDescription
+            showInfo = true
         } catch {
             isLoading = false
             errorMessage = error.localizedDescription
@@ -105,14 +235,18 @@ final class SnapshotListViewModel {
 
     // MARK: - Restore
 
-    func restoreSnapshot(_ snapshot: Snapshot, mode: SnapshotService.RestoreMode) async {
+    func restoreSnapshot(_ snapshot: Snapshot, mode: SnapshotService.RestoreMode, targetBrowser: Browser? = nil) async {
         isLoading = true
 
         do {
-            let restoredCount = try await snapshotService.restoreSnapshot(snapshot, mode: mode)
+            let restoredCount = try await snapshotService.restoreSnapshot(snapshot, mode: mode, targetBrowser: targetBrowser)
             isLoading = false
-            activateSafari()
-            infoMessage = "Successfully restored \(restoredCount) tab\(restoredCount == 1 ? "" : "s") to Safari."
+            // Activate handled inside SnapshotService now
+            infoMessage = "Successfully restored \(restoredCount) tab\(restoredCount == 1 ? "" : "s")."
+            showInfo = true
+        } catch let partial as SnapshotService.RestorePartialFailure {
+            isLoading = false
+            infoMessage = partial.localizedDescription
             showInfo = true
         } catch {
             isLoading = false
@@ -121,28 +255,23 @@ final class SnapshotListViewModel {
         }
     }
 
-    func restoreTabs(_ entries: [TabEntry], mode: SnapshotService.RestoreMode) async {
+    func restoreTabs(_ entries: [TabEntry], mode: SnapshotService.RestoreMode, targetBrowser: Browser? = nil) async {
         isLoading = true
 
         do {
-            let restoredCount = try await snapshotService.restoreTabs(entries, mode: mode)
+            let restoredCount = try await snapshotService.restoreTabs(entries, mode: mode, targetBrowser: targetBrowser)
             isLoading = false
-            activateSafari()
-            infoMessage = "Successfully restored \(restoredCount) tab\(restoredCount == 1 ? "" : "s") to Safari."
+            infoMessage = "Successfully restored \(restoredCount) tab\(restoredCount == 1 ? "" : "s")."
+            showInfo = true
+        } catch let partial as SnapshotService.RestorePartialFailure {
+            isLoading = false
+            infoMessage = partial.localizedDescription
             showInfo = true
         } catch {
             isLoading = false
             errorMessage = error.localizedDescription
             showError = true
         }
-    }
-
-    /// Bring Safari to the foreground so the user sees the restored tabs.
-    private func activateSafari() {
-        guard let safari = NSRunningApplication.runningApplications(
-            withBundleIdentifier: "com.apple.Safari"
-        ).first else { return }
-        safari.activate(options: .activateIgnoringOtherApps)
     }
 
     // MARK: - Comparison
@@ -199,7 +328,16 @@ final class SnapshotListViewModel {
         }
     }
 
-    /// Present a save dialog and write the data to disk.
+    /// The set of unique browser bundle IDs present in the snapshot's tabs.
+    func browsersInSnapshot(_ snapshot: Snapshot) -> [Browser] {
+        let ids = Set(snapshot.tabs.map { $0.browserId })
+        return ids.compactMap { Browser(rawValue: $0) }.sorted { $0.displayName < $1.displayName }
+    }
+
+    /// Whether a snapshot has tabs from multiple browsers.
+    func isMultiBrowserSnapshot(_ snapshot: Snapshot) -> Bool {
+        browsersInSnapshot(snapshot).count > 1
+    }
     private func presentSaveDialog(data: Data, defaultName: String) throws {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.json]

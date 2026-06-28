@@ -2,170 +2,202 @@ import Testing
 import Foundation
 @testable import SnapshotSafari
 
-// MARK: - SafariTab Tests
+// MARK: - BrowserTab Tests
 
-struct SafariTabTests {
+struct BrowserTabTests {
 
-    @Test("SafariTab handles null URL (Safari internal pages)")
+    @Test("BrowserTab handles null URL (browser internal pages)")
     func nullURL() throws {
         let json = """
-        {"url":null,"title":"Start Page","windowIndex":0,"index":0}
+        {"url":null,"title":"Start Page","windowIndex":0,"index":0,"browserId":"com.apple.Safari"}
         """
         let data = try #require(json.data(using: .utf8))
-        let tab = try JSONDecoder().decode(SafariTab.self, from: data)
+        let tab = try JSONDecoder().decode(BrowserTab.self, from: data)
         #expect(tab.url == nil)
         #expect(tab.title == "Start Page")
         #expect(tab.windowIndex == 0)
         #expect(tab.index == 0)
+        #expect(tab.browserId == "com.apple.Safari")
     }
 
-    @Test("SafariTab JSON array handles mixed null and real URLs")
+    @Test("BrowserTab JSON array handles mixed null and real URLs")
     func mixedNullURLs() throws {
         let json = """
         [
-            {"url":"https://apple.com","title":"Apple","windowIndex":0,"index":0},
-            {"url":null,"title":"Start Page","windowIndex":0,"index":1},
-            {"url":"https://github.com","title":"GitHub","windowIndex":0,"index":2}
+            {"url":"https://apple.com","title":"Apple","windowIndex":0,"index":0,"browserId":"com.apple.Safari"},
+            {"url":null,"title":"Start Page","windowIndex":0,"index":1,"browserId":"com.apple.Safari"},
+            {"url":"https://github.com","title":"GitHub","windowIndex":0,"index":2,"browserId":"com.apple.Safari"}
         ]
         """
         let data = try #require(json.data(using: .utf8))
-        let tabs = try JSONDecoder().decode([SafariTab].self, from: data)
+        let tabs = try JSONDecoder().decode([BrowserTab].self, from: data)
         #expect(tabs.count == 3)
         #expect(tabs[0].url == "https://apple.com")
         #expect(tabs[1].url == nil)
         #expect(tabs[2].url == "https://github.com")
     }
 
-    @Test("SafariTab can be created with all properties")
-    func createSafariTab() {
-        let tab = SafariTab(url: "https://example.com", title: "Example", windowIndex: 0, index: 0)
+    @Test("BrowserTab can be created with all properties")
+    func createBrowserTab() {
+        let tab = BrowserTab(url: "https://example.com", title: "Example", windowIndex: 0, index: 0, browserId: "com.apple.Safari")
         #expect(tab.url == "https://example.com")
         #expect(tab.title == "Example")
         #expect(tab.windowIndex == 0)
         #expect(tab.index == 0)
+        #expect(tab.browserId == "com.apple.Safari")
     }
 
-    @Test("SafariTab id is unique per window-index-url combination")
+    @Test("BrowserTab id is unique per browser-window-index-url combination")
     func uniqueId() {
-        let tab1 = SafariTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0)
-        let tab2 = SafariTab(url: "https://b.com", title: "B", windowIndex: 0, index: 1)
-        let tab3 = SafariTab(url: "https://a.com", title: "A", windowIndex: 1, index: 0)
+        let tab1 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.apple.Safari")
+        let tab2 = BrowserTab(url: "https://b.com", title: "B", windowIndex: 0, index: 1, browserId: "com.apple.Safari")
+        let tab3 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 1, index: 0, browserId: "com.apple.Safari")
+        let tab4 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.google.Chrome")
         #expect(tab1.id != tab2.id)
         #expect(tab1.id != tab3.id)
-        #expect(tab2.id != tab3.id)
+        #expect(tab1.id != tab4.id)
     }
 
-    @Test("SafariTab equality is based on id")
+    @Test("BrowserTab equality is based on id")
     func equalityById() {
-        let tab1 = SafariTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0)
-        let tab2 = SafariTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0)
+        let tab1 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.apple.Safari")
+        let tab2 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.apple.Safari")
         #expect(tab1 == tab2)
     }
 
-    @Test("SafariTab inequality detects different index")
+    @Test("BrowserTab inequality detects different index")
     func inequalityByIndex() {
-        let tab1 = SafariTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0)
-        let tab2 = SafariTab(url: "https://a.com", title: "A", windowIndex: 0, index: 1)
+        let tab1 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.apple.Safari")
+        let tab2 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 1, browserId: "com.apple.Safari")
         #expect(tab1 != tab2)
     }
 
-    @Test("SafariTab Codable roundtrip preserves all fields")
+    @Test("BrowserTab inequality detects different browser")
+    func inequalityByBrowser() {
+        let tab1 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.apple.Safari")
+        let tab2 = BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.google.Chrome")
+        #expect(tab1 != tab2)
+    }
+
+    @Test("BrowserTab Codable roundtrip preserves all fields")
     func codableRoundtrip() throws {
-        let original = SafariTab(url: "https://swift.org", title: "Swift.org", windowIndex: 2, index: 5)
+        let original = BrowserTab(url: "https://swift.org", title: "Swift.org", windowIndex: 2, index: 5, browserId: "com.apple.Safari")
         let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(SafariTab.self, from: data)
+        let decoded = try JSONDecoder().decode(BrowserTab.self, from: data)
 
         #expect(decoded.url == original.url)
         #expect(decoded.title == original.title)
         #expect(decoded.windowIndex == original.windowIndex)
         #expect(decoded.index == original.index)
+        #expect(decoded.browserId == original.browserId)
         #expect(decoded == original)
     }
 
-    @Test("SafariTab Codable handles URLs with special characters")
+    @Test("BrowserTab Codable handles URLs with special characters")
     func codableSpecialCharacters() throws {
-        let original = SafariTab(
+        let original = BrowserTab(
             url: "https://example.com/search?q=swift&lang=en#results",
             title: "Search Results: \"Swift\" & <more>",
             windowIndex: 0,
-            index: 0
+            index: 0,
+            browserId: "com.apple.Safari"
         )
         let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(SafariTab.self, from: data)
+        let decoded = try JSONDecoder().decode(BrowserTab.self, from: data)
 
         #expect(decoded.url == original.url)
         #expect(decoded.title == original.title)
     }
 
-    @Test("SafariTab JSON array roundtrip")
+    @Test("BrowserTab JSON array roundtrip")
     func jsonArrayRoundtrip() throws {
         let tabs = [
-            SafariTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0),
-            SafariTab(url: "https://b.com", title: "B", windowIndex: 0, index: 1),
-            SafariTab(url: "https://c.com", title: "C", windowIndex: 1, index: 0),
+            BrowserTab(url: "https://a.com", title: "A", windowIndex: 0, index: 0, browserId: "com.apple.Safari"),
+            BrowserTab(url: "https://b.com", title: "B", windowIndex: 0, index: 1, browserId: "com.apple.Safari"),
+            BrowserTab(url: "https://c.com", title: "C", windowIndex: 1, index: 0, browserId: "com.google.Chrome"),
         ]
         let data = try JSONEncoder().encode(tabs)
-        let decoded = try JSONDecoder().decode([SafariTab].self, from: data)
+        let decoded = try JSONDecoder().decode([BrowserTab].self, from: data)
 
         #expect(decoded.count == 3)
         #expect(decoded[0].url == "https://a.com")
         #expect(decoded[1].url == "https://b.com")
         #expect(decoded[2].url == "https://c.com")
+        #expect(decoded[0].browserId == "com.apple.Safari")
+        #expect(decoded[2].browserId == "com.google.Chrome")
     }
 }
 
-// MARK: - SafariBridgeError Tests
+// MARK: - BrowserBridgeError Tests
 
-struct SafariBridgeErrorTests {
+struct BrowserBridgeErrorTests {
 
-    @Test("safariNotRunning has correct description")
+    @Test("browserNotRunning has correct description")
     func notRunningDescription() {
-        let error = SafariBridgeError.safariNotRunning
+        let error = BrowserBridgeError.browserNotRunning(.safari)
         #expect(error.errorDescription == "Safari is not running. Please open Safari first.")
+    }
+
+    @Test("browserNotRunning works for Chrome")
+    func chromeNotRunningDescription() {
+        let error = BrowserBridgeError.browserNotRunning(.chrome)
+        #expect(error.errorDescription == "Google Chrome is not running. Please open Chrome first.")
     }
 
     @Test("permissionDenied has correct description")
     func permissionDeniedDescription() {
-        let error = SafariBridgeError.permissionDenied
+        let error = BrowserBridgeError.permissionDenied(.safari)
         #expect(error.errorDescription == "Snapshot Safari doesn't have permission to control Safari. Grant Automation access in System Settings → Privacy & Security → Automation.")
+    }
+
+    @Test("permissionDenied works for Chrome")
+    func chromePermissionDeniedDescription() {
+        let error = BrowserBridgeError.permissionDenied(.chrome)
+        #expect(error.errorDescription == "Snapshot Safari doesn't have permission to control Google Chrome. Grant Automation access in System Settings → Privacy & Security → Automation.")
     }
 
     @Test("scriptError includes detail")
     func scriptErrorDescription() {
-        let error = SafariBridgeError.scriptError("Something went wrong")
+        let error = BrowserBridgeError.scriptError("Something went wrong")
         #expect(error.errorDescription == "Script error: Something went wrong")
     }
 
     @Test("invalidOutput has correct description")
     func invalidOutputDescription() {
-        let error = SafariBridgeError.invalidOutput
-        #expect(error.errorDescription == "Could not parse Safari tab data.")
+        let error = BrowserBridgeError.invalidOutput
+        #expect(error.errorDescription == "Could not parse browser tab data.")
     }
 
     @Test("noTabsFound has correct description")
     func noTabsFoundDescription() {
-        let error = SafariBridgeError.noTabsFound
-        #expect(error.errorDescription == "No open tabs found in Safari.")
+        let error = BrowserBridgeError.noTabsFound
+        #expect(error.errorDescription == "No open tabs found.")
+    }
+
+    @Test("unsupportedOperation includes detail")
+    func unsupportedOperationDescription() {
+        let error = BrowserBridgeError.unsupportedOperation("Arc does not support tab reading.")
+        #expect(error.errorDescription == "Arc does not support tab reading.")
     }
 }
 
-// MARK: - RestoreMode Tests
+// MARK: - BrowserRestoreMode Tests
 
-struct RestoreModeTests {
+struct BrowserRestoreModeTests {
 
-    @Test("RestoreMode has two cases")
+    @Test("BrowserRestoreMode has two cases")
     func twoCases() {
-        #expect(SafariBridge.RestoreMode.allCases.count == 2)
+        #expect(BrowserRestoreMode.allCases.count == 2)
     }
 
-    @Test("RestoreMode raw values match display names")
+    @Test("BrowserRestoreMode raw values match display names")
     func rawValues() {
-        #expect(SafariBridge.RestoreMode.newWindow.rawValue == "New Safari Window")
-        #expect(SafariBridge.RestoreMode.currentWindow.rawValue == "Current Window (append)")
+        #expect(BrowserRestoreMode.newWindow.rawValue == "New Window")
+        #expect(BrowserRestoreMode.currentWindow.rawValue == "Current Window (append)")
     }
 }
 
-// MARK: - JXA Script Execution Test
+// MARK: - JXA Script Execution Tests
 
 struct JXAExecutionTests {
 
@@ -265,8 +297,8 @@ struct JXAExecutionTests {
         let script = """
         function run() {
             var tabs = [
-                {url: "https://example.com/search?q=swift&lang=en", title: "Swift & Friends", windowIndex: 0, index: 0},
-                {url: "https://example.com/path%20with%20spaces", title: "Path with spaces", windowIndex: 0, index: 1}
+                {url: "https://example.com/search?q=swift&lang=en", title: "Swift & Friends", windowIndex: 0, index: 0, browserId: "com.apple.Safari"},
+                {url: "https://example.com/path%20with%20spaces", title: "Path with spaces", windowIndex: 0, index: 1, browserId: "com.apple.Safari"}
             ];
             return JSON.stringify(tabs);
         }
@@ -289,9 +321,10 @@ struct JXAExecutionTests {
 
         #expect(process.terminationStatus == 0)
         let data = try #require(output?.data(using: .utf8))
-        let tabs = try JSONDecoder().decode([SafariTab].self, from: data)
+        let tabs = try JSONDecoder().decode([BrowserTab].self, from: data)
         #expect(tabs.count == 2)
         #expect(tabs[0].url == "https://example.com/search?q=swift&lang=en")
         #expect(tabs[1].url == "https://example.com/path%20with%20spaces")
+        #expect(tabs[0].browserId == "com.apple.Safari")
     }
 }

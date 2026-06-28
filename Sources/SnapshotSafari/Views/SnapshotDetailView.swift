@@ -11,6 +11,15 @@ struct SnapshotDetailView: View {
     @State private var selectedTabs: Set<UUID> = []
     @State private var searchText = ""
 
+    /// Unique browsers in this snapshot (cached for badge rendering).
+    private var browsers: [Browser] {
+        viewModel.browsersInSnapshot(snapshot)
+    }
+
+    private var isMultiBrowser: Bool {
+        viewModel.isMultiBrowserSnapshot(snapshot)
+    }
+
     var filteredTabs: [TabEntry] {
         guard !searchText.isEmpty else { return snapshot.tabs }
         let query = searchText.lowercased()
@@ -50,6 +59,32 @@ struct SnapshotDetailView: View {
                         .help("Rename")
                         .accessibilityLabel("Rename snapshot")
                         .accessibilityHint("Edit the name of this snapshot.")
+                    }
+                }
+
+                if isMultiBrowser {
+                    HStack(spacing: 4) {
+                        Label("Capture All", systemImage: "square.grid.2x2")
+                            .font(.caption2)
+                            .foregroundStyle(.tint)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.tint.opacity(0.1))
+                            .clipShape(Capsule())
+
+                        ForEach(browsers, id: \.rawValue) { browser in
+                            HStack(spacing: 3) {
+                                Image(systemName: browser.iconName)
+                                    .font(.system(size: 8))
+                                Text(browser.shortName)
+                                    .font(.caption2)
+                            }
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(browser.brandColor.opacity(0.15))
+                            .clipShape(Capsule())
+                            .foregroundStyle(browser.brandColor)
+                        }
                     }
                 }
 
@@ -148,20 +183,25 @@ struct SnapshotDetailView: View {
             .padding()
             .background(.ultraThinMaterial)
         }
-        .sheet(isPresented: $showingRestoreAllOptions) {
-            RestoreOptionsSheet { mode in
-                Task {
-                    await viewModel.restoreSnapshot(snapshot, mode: mode)
+.sheet(isPresented: $showingRestoreAllOptions) {
+            RestoreOptionsSheet(
+                sourceBrowsers: viewModel.browsersInSnapshot(snapshot),
+                onRestore: { mode, targetBrowser in
+                    Task {
+                        await viewModel.restoreSnapshot(snapshot, mode: mode, targetBrowser: targetBrowser)
+                    }
                 }
-            }
+            )
         }
         .sheet(isPresented: $showingSelectedRestoreOptions) {
             let entries = snapshot.tabs.filter { selectedTabs.contains($0.id) }
+            let entryBrowsers = Array(Set(entries.compactMap { $0.browser }))
             RestoreOptionsSheet(
                 title: "Restore \(entries.count) Selected Tab\(entries.count == 1 ? "" : "s")",
-                onRestore: { mode in
+                sourceBrowsers: entryBrowsers,
+                onRestore: { mode, targetBrowser in
                     Task {
-                        await viewModel.restoreTabs(entries, mode: mode)
+                        await viewModel.restoreTabs(entries, mode: mode, targetBrowser: targetBrowser)
                     }
                 }
             )

@@ -89,7 +89,7 @@ SnapshotSafari/
 │   ├── build-app.sh                 # swift build → .app bundle
 │   ├── generate-icon.py             # SVG → PNGs → AppIcon.icns
 │   └── release/                     # DMG, signing, notarization scripts
-└── Tests/SnapshotSafariTests/       # 114 tests across 13 suites
+├── Tests/SnapshotSafariTests/       # 164 tests across 16 suites
 ```
 
 ## Coding Guidelines
@@ -140,20 +140,20 @@ swift test --filter SnapshotServiceTests
 swift test --filter AutoNamerTests
 ```
 
-### Test Coverage (114 tests, 13 suites)
+### Test Coverage (164 tests, 16 suites)
 
 | Suite | Tests | Area |
 |-------|-------|------|
-| AutoNamerTests | 10 | Snapshot naming logic |
-| SafariBridgeTests | 18 | Tab model, JXA execution |
+| BrowserBridgeTests | 18 | BrowserTab model, BrowserBridgeError, JXA |
 | SnapshotServiceTests | 27 | CRUD, search, trash, cleanup |
+| RestoreServiceTests | 18 | Partial failures, restoreGroups, MockBridge |
+| AutoSnapshotTargetTests | 28 | Dynamic targets, migration, filtering |
 | SnapshotDiffTests | 8 | URL diffing algorithm |
 | SnapshotExportTests | 14 | JSON export/import |
 | SyncServiceTests | 19 | iCloud sync state |
+| AutoNamerTests | 10 | Snapshot naming logic |
 | PermissionsServiceProbeTests | 4 | TCC permission probe |
 | SettingsTabTests | 5 | Settings UI |
-| RestoreModeTests | 2 | Restore mode enum |
-| SafariBridgeErrorTests | 5 | Error descriptions |
 
 ### Writing Tests
 

@@ -4,21 +4,32 @@ import SwiftData
 @MainActor
 final class SnapshotService {
     private let modelContext: ModelContext
+    private let bridgeProvider: @Sendable (Browser) -> any BrowserBridge
 
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, bridgeProvider: @escaping @Sendable (Browser) -> any BrowserBridge = BrowserBridgeFactory.create) {
         self.modelContext = modelContext
+        self.bridgeProvider = bridgeProvider
     }
 
     // MARK: - Create
 
-    /// Takes a new snapshot of all open Safari tabs
+    /// Takes a new snapshot of all open tabs from the specified browser.
     @discardableResult
-    func takeSnapshot(isAuto: Bool = false) async throws -> Snapshot {
-        let bridge = SafariBridge()
-        let tabs = try await bridge.readAllTabs()
+    func takeSnapshot(browser: Browser? = nil, isAuto: Bool = false) async throws -> Snapshot {
+        let targetBrowser = browser ?? .frontmostBrowser ?? .safari
+        let bridge = bridgeProvider(targetBrowser)
+
+        let tabs: [BrowserTab]
+        do {
+            tabs = try await bridge.readAllTabs()
+        } catch let error as BrowserBridgeError {
+            throw error
+        } catch {
+            throw error
+        }
 
         guard !tabs.isEmpty else {
-            throw SafariBridgeError.noTabsFound
+            throw BrowserBridgeError.noTabsFound
         }
 
         let tabEntries = tabs.map { tab in
@@ -26,15 +37,95 @@ final class SnapshotService {
                 url: tab.url ?? "about:blank",
                 title: tab.title,
                 windowIndex: tab.windowIndex,
-                index: tab.index
+                index: tab.index,
+                browserId: tab.browserId
             )
         }
 
-        let name = AutoNamer.generateName(tabCount: tabEntries.count, isAuto: isAuto)
+        let name = AutoNamer.generateName(
+            tabCount: tabEntries.count,
+            isAuto: isAuto,
+            browserName: targetBrowser.shortName
+        )
         let snapshot = Snapshot(name: name, tabs: tabEntries, isAutoSnapshot: isAuto)
 
         modelContext.insert(snapshot)
         try modelContext.save()
+
+        return snapshot
+    }
+
+    /// Takes a snapshot of ALL running browsers that support tab reading.
+    /// Tabs are tagged with their source browser and stored in a single snapshot.
+    /// Throws `CapturePartialFailure` when some browsers succeed but others fail.
+    @discardableResult
+    func takeSnapshotOfAllBrowsers(isAuto: Bool = false) async throws -> Snapshot {
+        let readableBrowsers = Browser.readableRunningBrowsers
+
+        guard !readableBrowsers.isEmpty else {
+            throw BrowserBridgeError.noTabsFound
+        }
+
+        // Collect tabs from all readable browsers concurrently,
+        // tracking per-browser success/failure for partial error surfacing.
+        var allTabs: [BrowserTab] = []
+        var failures: [(Browser, Error)] = []
+
+        await withTaskGroup(of: Result<[BrowserTab], BrowserCaptureFailure>.self) { group in
+            for browser in readableBrowsers {
+                group.addTask { [bridgeProvider] in
+                    let bridge = bridgeProvider(browser)
+                    do {
+                        let tabs = try await bridge.readAllTabs()
+                        return .success(tabs)
+                    } catch {
+                        return .failure(BrowserCaptureFailure(browser: browser, error: error))
+                    }
+                }
+            }
+
+            for await result in group {
+                switch result {
+                case .success(let tabs):
+                    allTabs.append(contentsOf: tabs)
+                case .failure(let failure):
+                    failures.append((failure.browser, failure.error))
+                }
+            }
+        }
+
+        // If nothing was captured at all
+        if allTabs.isEmpty {
+            if let first = failures.first {
+                throw first.1
+            }
+            throw BrowserBridgeError.noTabsFound
+        }
+
+        let tabEntries = allTabs.map { tab in
+            TabEntry(
+                url: tab.url ?? "about:blank",
+                title: tab.title,
+                windowIndex: tab.windowIndex,
+                index: tab.index,
+                browserId: tab.browserId
+            )
+        }
+
+        let browserNames = Set(tabEntries.compactMap { Browser(rawValue: $0.browserId)?.shortName }).sorted()
+        let name = AutoNamer.generateName(
+            tabCount: tabEntries.count,
+            isAuto: isAuto,
+            browserName: browserNames.joined(separator: " + ")
+        )
+        let snapshot = Snapshot(name: name, tabs: tabEntries, isAutoSnapshot: isAuto)
+
+        modelContext.insert(snapshot)
+        try modelContext.save()
+
+        if !failures.isEmpty {
+            throw CapturePartialFailure(snapshot: snapshot, failedBrowsers: failures)
+        }
 
         return snapshot
     }
@@ -222,6 +313,44 @@ final class SnapshotService {
         }
     }
 
+    /// Thrown when restoring a multi-browser snapshot where some browser groups
+    /// succeeded but others failed. Carries the restored count for partial-success UX.
+    struct RestorePartialFailure: LocalizedError {
+        let totalRestored: Int
+        let failedBrowsers: [(Browser, Error)]
+
+        var errorDescription: String? {
+            let label = totalRestored == 1 ? "tab" : "tabs"
+            let details = failedBrowsers
+                .map { "\($0.0.shortName) could not be restored — \($0.1.localizedDescription)" }
+                .joined(separator: "; ")
+            return "Restored \(totalRestored) \(label), but \(details)"
+        }
+    }
+
+    /// Wraps a per-browser capture failure for use in `Result` types
+    /// within `takeSnapshotOfAllBrowsers`.
+    private struct BrowserCaptureFailure: Error {
+        let browser: Browser
+        let error: Error
+    }
+
+    /// Thrown when capturing tabs from all running browsers where some succeeded
+    /// but others failed. Carries the persisted snapshot and failed browsers so
+    /// the UI can both show the snapshot and display the partial-failure message.
+    struct CapturePartialFailure: LocalizedError {
+        let snapshot: Snapshot
+        let failedBrowsers: [(Browser, Error)]
+
+        var errorDescription: String? {
+            let label = snapshot.tabCount == 1 ? "tab" : "tabs"
+            let details = failedBrowsers
+                .map { "\($0.0.shortName) could not be captured — \($0.1.localizedDescription)" }
+                .joined(separator: "; ")
+            return "Captured \(snapshot.tabCount) \(label) across browsers, but \(details)"
+        }
+    }
+
     // MARK: - Legacy Delete (for backward compat - delegates to trash)
 
     func deleteSnapshot(_ snapshot: Snapshot) {
@@ -235,10 +364,10 @@ final class SnapshotService {
     // MARK: - Restore
 
     enum RestoreMode: String, CaseIterable {
-        case newWindow = "New Safari Window"
-        case currentWindow = "Current Window"
+        case newWindow = "New Window"
+        case currentWindow = "Current Window (append)"
 
-        var bridgeMode: SafariBridge.RestoreMode {
+        var bridgeMode: BrowserRestoreMode {
             switch self {
             case .newWindow: return .newWindow
             case .currentWindow: return .currentWindow
@@ -246,31 +375,99 @@ final class SnapshotService {
         }
     }
 
+    /// Restore a full snapshot to the specified browser.
+    /// If `targetBrowser` is nil, each tab is restored to its original browser.
     @discardableResult
-    func restoreSnapshot(_ snapshot: Snapshot, mode: RestoreMode) async throws -> Int {
-        let bridge = SafariBridge()
-        let tabs = snapshot.tabs.map { entry in
-            SafariTab(
-                url: entry.url,
-                title: entry.title,
-                windowIndex: entry.windowIndex,
-                index: entry.index
-            )
+    func restoreSnapshot(_ snapshot: Snapshot, mode: RestoreMode, targetBrowser: Browser? = nil) async throws -> Int {
+        if let target = targetBrowser {
+            // Force all tabs into one browser
+            let bridge = bridgeProvider(target)
+            let tabs = snapshot.tabs.map { entry in
+                BrowserTab(
+                    url: entry.url,
+                    title: entry.title,
+                    windowIndex: entry.windowIndex,
+                    index: entry.index,
+                    browserId: target.rawValue
+                )
+            }
+            let count = try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
+            target.activate()
+            return count
+        } else {
+            let groups = Dictionary(grouping: snapshot.tabs) { $0.browserId }
+            return try await restoreGroups(groups, mode: mode)
         }
-        return try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
     }
 
     @discardableResult
-    func restoreTabs(_ entries: [TabEntry], mode: RestoreMode) async throws -> Int {
-        let bridge = SafariBridge()
-        let tabs = entries.map { entry in
-            SafariTab(
-                url: entry.url,
-                title: entry.title,
-                windowIndex: entry.windowIndex,
-                index: entry.index
-            )
+    func restoreTabs(_ entries: [TabEntry], mode: RestoreMode, targetBrowser: Browser? = nil) async throws -> Int {
+        if let target = targetBrowser {
+            let bridge = bridgeProvider(target)
+            let tabs = entries.map { entry in
+                BrowserTab(
+                    url: entry.url,
+                    title: entry.title,
+                    windowIndex: entry.windowIndex,
+                    index: entry.index,
+                    browserId: target.rawValue
+                )
+            }
+            let count = try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
+            target.activate()
+            return count
+        } else {
+            let groups = Dictionary(grouping: entries) { $0.browserId }
+            return try await restoreGroups(groups, mode: mode)
         }
-        return try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
+    }
+
+    // MARK: - Private Restore Helpers
+
+    /// Restore tab groups to their original browsers. Handles partial failures
+    /// by collecting them and throwing `RestorePartialFailure` when some succeed.
+    func restoreGroups(_ groups: [String: [TabEntry]], mode: RestoreMode) async throws -> Int {
+        var totalRestored = 0
+        var failures: [(Browser, Error)] = []
+
+        for (browserId, entries) in groups {
+            guard let browser = Browser(rawValue: browserId) else { continue }
+            let bridge = bridgeProvider(browser)
+            let tabs = entries.map { entry in
+                BrowserTab(
+                    url: entry.url,
+                    title: entry.title,
+                    windowIndex: entry.windowIndex,
+                    index: entry.index,
+                    browserId: browserId
+                )
+            }
+            do {
+                let count = try await bridge.restoreTabs(tabs, mode: mode.bridgeMode)
+                totalRestored += count
+            } catch {
+                failures.append((browser, error))
+            }
+        }
+
+        // Activate the browser that had the most tabs
+        if let dominant = groups.max(by: { $0.value.count < $1.value.count }),
+           let browser = Browser(rawValue: dominant.key) {
+            browser.activate()
+        }
+
+        if totalRestored == 0 {
+            // Nothing restored at all — throw the first failure if available
+            if let first = failures.first {
+                throw first.1
+            }
+            throw BrowserBridgeError.noTabsFound
+        }
+
+        if !failures.isEmpty {
+            throw RestorePartialFailure(totalRestored: totalRestored, failedBrowsers: failures)
+        }
+
+        return totalRestored
     }
 }
