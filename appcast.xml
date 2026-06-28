@@ -35,9 +35,9 @@
             ]]></description>
             <enclosure
                 url="https://github.com/ErnestHysa/snapshot-safari/releases/download/v1.1.0/SnapshotSafari-1.1.0-5.dmg"
-                length="REPLACE_WITH_DMG_BYTES"
+                length="2353438"
                 type="application/octet-stream"
-                sparkle:edSignature="REPLACE_WITH_SIGN_UPDATE_OUTPUT"
+                sparkle:edSignature="jJurl3iBO1bI1y/ySiVn1IVD+hNhNvwfL+1D2JymjMjcy6FHPRWYOLQNSGBMrf/nSVBTghvucjXOq45X75+dDQ=="
                 sparkle:os="macos"/>
         </item>
         <item>
