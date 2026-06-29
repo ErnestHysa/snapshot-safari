@@ -8,6 +8,7 @@ struct SnapshotSafariApp: App {
     @State private var selectedTheme: AppTheme = .system
     @State private var updateChecker = SparkleUpdateChecker.shared
     @State private var syncService = SyncService.shared
+    @State private var globalHotkey = GlobalHotkeyManager()
 
     var body: some Scene {
         WindowGroup {
@@ -15,6 +16,7 @@ struct SnapshotSafariApp: App {
                 .preferredColorScheme(selectedTheme.colorScheme)
                 .onAppear {
                     loadTheme()
+                    globalHotkey.start()
                     // Clean up old trash on launch
                     let context = container.mainContext
                     let service = SnapshotService(modelContext: context)

@@ -106,6 +106,20 @@ final class PermissionsService {
         }
     }
 
+    /// Open System Settings to the Accessibility privacy pane.
+    @MainActor
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Whether the app has been granted Accessibility permission
+    /// (required for the global hotkey to work system-wide).
+    var hasAccessibilityPermission: Bool {
+        AXIsProcessTrusted()
+    }
+
     // MARK: - Status Messages
 
     /// User-facing message for a specific browser.
