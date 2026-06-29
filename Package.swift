@@ -21,7 +21,8 @@ let package = Package(
             ],
             exclude: [
                 "Info.plist",
-                "Resources/Entitlements"
+                "Resources/Entitlements",
+                "Resources/AppIcon.icns"
             ],
             resources: [
                 .process("Resources/Assets.xcassets")

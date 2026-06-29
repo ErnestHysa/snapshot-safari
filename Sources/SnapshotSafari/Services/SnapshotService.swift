@@ -338,7 +338,7 @@ final class SnapshotService {
     /// Thrown when capturing tabs from all running browsers where some succeeded
     /// but others failed. Carries the persisted snapshot and failed browsers so
     /// the UI can both show the snapshot and display the partial-failure message.
-    struct CapturePartialFailure: LocalizedError {
+    struct CapturePartialFailure: LocalizedError, @unchecked Sendable {
         let snapshot: Snapshot
         let failedBrowsers: [(Browser, Error)]
 

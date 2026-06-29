@@ -89,20 +89,21 @@ final class JXAScriptRunner {
 
     private func execute(on queue: DispatchQueue, source: String) async throws -> String {
         try await withCheckedThrowingContinuation { continuation in
-            let lock = NSLock()
-            var hasResumed = false
+            let hasResumed = OSAllocatedUnfairLock(initialState: false)
 
             queue.async {
                 guard let language = OSALanguage(forName: "JavaScript") else {
-                    lock.lock()
-                    if !hasResumed {
-                        hasResumed = true
-                        lock.unlock()
+                    let didResume = hasResumed.withLock { isResumed in
+                        if !isResumed {
+                            isResumed = true
+                            return true
+                        }
+                        return false
+                    }
+                    if didResume {
                         continuation.resume(
                             throwing: BrowserBridgeError.scriptError("JavaScript OSA language unavailable")
                         )
-                    } else {
-                        lock.unlock()
                     }
                     return
                 }
@@ -111,13 +112,12 @@ final class JXAScriptRunner {
                 var error: NSDictionary?
                 let outcome = script.executeAndReturnError(&error)
 
-                lock.lock()
-                guard !hasResumed else {
-                    lock.unlock()
-                    return
+                let didResume = hasResumed.withLock { isResumed in
+                    guard !isResumed else { return false }
+                    isResumed = true
+                    return true
                 }
-                hasResumed = true
-                lock.unlock()
+                guard didResume else { return }
 
                 if let error {
                     let message = Self.describeOSAError(error)
@@ -133,13 +133,12 @@ final class JXAScriptRunner {
 
             let logger = self.logger
             DispatchQueue.global().asyncAfter(deadline: .now() + Self.appleEventTimeoutSeconds) {
-                lock.lock()
-                guard !hasResumed else {
-                    lock.unlock()
-                    return
+                let didResume = hasResumed.withLock { isResumed in
+                    guard !isResumed else { return false }
+                    isResumed = true
+                    return true
                 }
-                hasResumed = true
-                lock.unlock()
+                guard didResume else { return }
                 logger.warning("AppleEvent timed out after \(Self.appleEventTimeoutSeconds)s")
                 continuation.resume(throwing: BrowserBridgeError.appleEventTimeout)
             }

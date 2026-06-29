@@ -166,6 +166,6 @@ enum Browser: String, CaseIterable, Identifiable, Codable {
         guard let app = NSRunningApplication.runningApplications(
             withBundleIdentifier: rawValue
         ).first else { return }
-        app.activate(options: .activateIgnoringOtherApps)
+        app.activate()
     }
 }

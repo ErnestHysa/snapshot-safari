@@ -230,7 +230,7 @@ final class SnapshotListViewModel {
 
         // Capture the snapshot ID directly in the closure so each undo
         // action restores its own snapshot — not just the most recent one.
-        undoManager?.registerUndo(withTarget: self) { [weak self] target in
+        undoManager?.registerUndo(withTarget: self) { target in
             let trashed = target.snapshotService.fetchTrashedSnapshots()
             if let s = trashed.first(where: { $0.id == snapshotID }) {
                 target.restoreFromTrash(s)
