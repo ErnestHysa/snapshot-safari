@@ -3,6 +3,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.undoManager) private var undoManager
     @State private var viewModel: SnapshotListViewModel?
     @State private var autoSnapshotManager: AutoSnapshotManager?
     @State private var permissionsService = PermissionsService()
@@ -91,10 +92,10 @@ struct ContentView: View {
             initializeServices()
         }
         .onReceive(NotificationCenter.default.publisher(for: .takeSnapshot)) { _ in
-            guard !isTakingSnapshot else { return }
+            guard !isTakingSnapshot, let vm = viewModel else { return }
             isTakingSnapshot = true
             Task {
-                await viewModel?.takeSnapshotOfFrontmostBrowser()
+                await vm.takeSnapshotOfFrontmostBrowser()
                 isTakingSnapshot = false
             }
         }
@@ -120,6 +121,23 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .deleteSelectedSnapshot)) { _ in
             if let snapshot = viewModel?.selectedSnapshot {
                 viewModel?.deleteSnapshot(snapshot)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .undoLastDelete)) { _ in
+            viewModel?.undoLastDelete()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .restoreFromTrash)) { _ in
+            guard let vm = viewModel, !vm.trashedSnapshots.isEmpty else { return }
+            vm.restoreAllFromTrash()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .takeSnapshotBrowser)) { notification in
+            guard !isTakingSnapshot, let vm = viewModel else { return }
+            guard let raw = notification.object as? String,
+                  let browser = Browser(rawValue: raw) else { return }
+            isTakingSnapshot = true
+            Task {
+                await vm.takeSnapshotOfBrowser(browser)
+                isTakingSnapshot = false
             }
         }
     }
@@ -152,7 +170,6 @@ struct ContentView: View {
                     Label("Capture Active Browser", systemImage: "camera.fill")
                 }
             }
-            .keyboardShortcut("n", modifiers: .command)
             .disabled(isTakingSnapshot)
 
             Divider()
@@ -254,7 +271,9 @@ struct ContentView: View {
     private func initializeServices() {
         guard viewModel == nil else { return }
         let service = SnapshotService(modelContext: modelContext)
-        viewModel = SnapshotListViewModel(snapshotService: service)
+        let vm = SnapshotListViewModel(snapshotService: service)
+        vm.undoManager = undoManager
+        viewModel = vm
         autoSnapshotManager = AutoSnapshotManager(snapshotService: service)
     }
 

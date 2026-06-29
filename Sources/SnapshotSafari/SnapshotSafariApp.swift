@@ -33,6 +33,22 @@ struct SnapshotSafariApp: App {
                     NotificationCenter.default.post(name: .takeSnapshot, object: nil)
                 }
                 .keyboardShortcut("n", modifiers: .command)
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+
+                Divider()
+
+                // Browser-specific snapshot shortcuts (Cmd+Opt+1…7)
+                ForEach(browserShortcutMap, id: \.browser.rawValue) { entry in
+                    if entry.browser.isInstalled {
+                        Button("Snapshot \(entry.browser.displayName)") {
+                            NotificationCenter.default.post(name: .takeSnapshotBrowser, object: entry.browser.rawValue)
+                        }
+                        .disabled(!entry.browser.isRunning)
+                        .keyboardShortcut(entry.key, modifiers: [.command, .option])
+                    }
+                }
+
+                Divider()
 
                 Button("Import Snapshots…") {
                     NotificationCenter.default.post(name: .importSnapshots, object: nil)
@@ -62,6 +78,15 @@ struct SnapshotSafariApp: App {
                     NotificationCenter.default.post(name: .deleteSelectedSnapshot, object: nil)
                 }
                 .keyboardShortcut(.delete, modifiers: .command)
+
+                Button("Undo Delete Snapshot") {
+                    NotificationCenter.default.post(name: .undoLastDelete, object: nil)
+                }
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+
+                Button("Restore All from Trash") {
+                    NotificationCenter.default.post(name: .restoreFromTrash, object: nil)
+                }
             }
 
             CommandGroup(after: .appInfo) {
@@ -126,15 +151,35 @@ struct SnapshotSafariApp: App {
     }
 }
 
+// MARK: - Browser Shortcut Map
+
+private struct BrowserShortcutEntry {
+    let browser: Browser
+    let key: KeyEquivalent
+}
+
+fileprivate let browserShortcutMap: [BrowserShortcutEntry] = [
+        BrowserShortcutEntry(browser: .safari, key: "1"),
+        BrowserShortcutEntry(browser: .chrome, key: "2"),
+        BrowserShortcutEntry(browser: .brave, key: "3"),
+        BrowserShortcutEntry(browser: .edge, key: "4"),
+        BrowserShortcutEntry(browser: .opera, key: "5"),
+        BrowserShortcutEntry(browser: .vivaldi, key: "6"),
+        BrowserShortcutEntry(browser: .orion, key: "7"),
+    ]
+
 // MARK: - Notifications
 
 extension Notification.Name {
     static let takeSnapshot = Notification.Name("takeSnapshot")
+    static let takeSnapshotBrowser = Notification.Name("takeSnapshotBrowser")
     static let openSettings = Notification.Name("openSettings")
     static let importSnapshots = Notification.Name("importSnapshots")
     static let exportSnapshot = Notification.Name("exportSnapshot")
     static let exportAllSnapshots = Notification.Name("exportAllSnapshots")
     static let deleteSelectedSnapshot = Notification.Name("deleteSelectedSnapshot")
+    static let undoLastDelete = Notification.Name("undoLastDelete")
+    static let restoreFromTrash = Notification.Name("restoreFromTrash")
     static let renameSelectedSnapshot = Notification.Name("renameSelectedSnapshot")
     static let compareSelectedSnapshot = Notification.Name("compareSelectedSnapshot")
 }

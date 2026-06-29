@@ -19,6 +19,12 @@ final class SnapshotListViewModel {
     var infoMessage: String?
     var showInfo = false
 
+    /// Undo manager for delete/restore operations. Set by the hosting view.
+    var undoManager: UndoManager?
+
+    /// Tracks the most recently deleted snapshot ID for the explicit menu command.
+    private var lastDeletedSnapshotID: UUID?
+
     /// Filter snapshots by browser origin.
     var browserFilter: BrowserFilter = .all
 
@@ -115,10 +121,18 @@ final class SnapshotListViewModel {
         }
     }
 
-    /// Capture the frontmost browser (hotkey path)
+    /// Capture the frontmost browser (hotkey path).
+    /// When the frontmost app is SnapshotSafari itself (e.g. user clicks
+    /// File → Take Snapshot from the menu bar), falls back to the first
+    /// readable running browser so the user still gets a snapshot.
     func takeSnapshotOfFrontmostBrowser(isAuto: Bool = false) async {
-        guard let frontmost = Browser.frontmostBrowser, frontmost.supportsReadTabs else {
-            errorMessage = "The active application is not a supported browser."
+        let browserToCapture: Browser
+        if let frontmost = Browser.frontmostBrowser, frontmost.supportsReadTabs {
+            browserToCapture = frontmost
+        } else if let fallback = Browser.readableRunningBrowsers.first {
+            browserToCapture = fallback
+        } else {
+            errorMessage = "No supported browser is currently running."
             showError = true
             return
         }
@@ -126,7 +140,7 @@ final class SnapshotListViewModel {
         isLoading = true
 
         do {
-            let snapshot = try await snapshotService.takeSnapshot(browser: frontmost, isAuto: isAuto)
+            let snapshot = try await snapshotService.takeSnapshot(browser: browserToCapture, isAuto: isAuto)
             isLoading = false
             withAnimation {
                 snapshots.insert(snapshot, at: 0)
@@ -187,6 +201,10 @@ final class SnapshotListViewModel {
 
     func deleteSnapshot(_ snapshot: Snapshot) {
         snapshotService.trashSnapshot(snapshot)
+
+        // Register undo action so Cmd+Z can restore
+        registerUndoDelete(snapshot)
+
         withAnimation {
             snapshots.removeAll { $0.id == snapshot.id }
             trashedSnapshots = snapshotService.fetchTrashedSnapshots()
@@ -194,6 +212,31 @@ final class SnapshotListViewModel {
                 selectedSnapshot = snapshots.first
             }
         }
+    }
+
+    /// Undo the most recent deletion (triggered by Cmd+Z via UndoManager).
+    func undoLastDelete() {
+        guard let id = lastDeletedSnapshotID else { return }
+        let trashed = snapshotService.fetchTrashedSnapshots()
+        if let snapshot = trashed.first(where: { $0.id == id }) {
+            restoreFromTrash(snapshot)
+            lastDeletedSnapshotID = nil
+        }
+    }
+
+    private func registerUndoDelete(_ snapshot: Snapshot) {
+        let snapshotID = snapshot.id
+        lastDeletedSnapshotID = snapshotID
+
+        // Capture the snapshot ID directly in the closure so each undo
+        // action restores its own snapshot — not just the most recent one.
+        undoManager?.registerUndo(withTarget: self) { [weak self] target in
+            let trashed = target.snapshotService.fetchTrashedSnapshots()
+            if let s = trashed.first(where: { $0.id == snapshotID }) {
+                target.restoreFromTrash(s)
+            }
+        }
+        undoManager?.setActionName("Delete Snapshot")
     }
 
     func restoreFromTrash(_ snapshot: Snapshot) {

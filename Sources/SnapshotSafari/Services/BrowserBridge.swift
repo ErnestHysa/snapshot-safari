@@ -68,17 +68,21 @@ protocol BrowserBridge {
 // MARK: - JXA Script Execution
 
 /// Shared JXA execution engine used by all bridge implementations.
-/// Handles in-process script execution, timeout, and TCC permission retry logic.
+/// Handles in-process script execution and timeout. Runs on a background
+/// queue first for performance (Safari works fine there), then falls back
+/// to the main thread unconditionally on any failure — Chromium browsers
+/// require a run loop to process AppleEvent replies.
 final class JXAScriptRunner {
     private let logger = Logger(subsystem: "com.ernest.snapshot-safari", category: "JXARunner")
     private static let appleEventTimeoutSeconds: TimeInterval = 30
 
     /// Execute a JXA script in-process. Returns the script's string result.
+    /// Tries the background queue first, then retries on main thread.
     func execute(_ source: String) async throws -> String {
         do {
             return try await execute(on: .global(), source: source)
-        } catch let error as OSAScriptError where Self.isPermissionError(error) {
-            logger.debug("Permission error on background queue, retrying on main thread")
+        } catch {
+            logger.debug("Retrying on main thread after: \(error.localizedDescription)")
             return try await execute(on: .main, source: source)
         }
     }
